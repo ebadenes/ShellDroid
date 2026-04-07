@@ -1,0 +1,52 @@
+# IDE
+.idea/
+*.iml
+.vscode/
+.fleet/
+
+# Claude / agents (local-only)
+.claude/
+.serena/
+.mcp.json
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Reference material (large, kept locally only)
+JuiceSSH.apk
+decompiled/
+ShellDroid_Especificacion_MVP.docx
+
+# Gradle
+.gradle/
+build/
+captures/
+local.properties
+*.hprof
+
+# Native build artifacts
+.cxx/
+*.so
+*.a
+*.o
+
+# Android
+*.apk
+*.aab
+*.ap_
+*.dex
+
+# Vendor build outputs
+vendor/termux-app/build/
+vendor/termux-app/*/build/
+vendor/libssh/build/
+vendor/mbedtls/build/
+
+# Logs
+*.log
+
+# Keystores (NEVER commit)
+*.jks
+*.keystore
+release.keystore.properties
