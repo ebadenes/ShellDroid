@@ -1,0 +1,34 @@
+diff --git a/terminal-emulator/src/main/java/com/termux/terminal/TerminalSession.java b/terminal-emulator/src/main/java/com/termux/terminal/TerminalSession.java
+index caea870..c2ab550 100644
+--- a/terminal-emulator/src/main/java/com/termux/terminal/TerminalSession.java
++++ b/terminal-emulator/src/main/java/com/termux/terminal/TerminalSession.java
+@@ -28,14 +28,14 @@ import java.util.UUID;
+  * <p>
+  * NOTE: The terminal session may outlive the EmulatorView, so be careful with callbacks!
+  */
+-public final class TerminalSession extends TerminalOutput {
++public class TerminalSession extends TerminalOutput {
+ 
+     private static final int MSG_NEW_INPUT = 1;
+     private static final int MSG_PROCESS_EXITED = 4;
+ 
+     public final String mHandle = UUID.randomUUID().toString();
+ 
+-    TerminalEmulator mEmulator;
++    protected TerminalEmulator mEmulator;
+ 
+     /**
+      * A queue written to from a separate thread when the process outputs, and read by main thread to process by
+@@ -51,10 +51,10 @@ public final class TerminalSession extends TerminalOutput {
+     private final byte[] mUtf8InputBuffer = new byte[5];
+ 
+     /** Callback which gets notified when a session finishes or changes title. */
+-    TerminalSessionClient mClient;
++    protected TerminalSessionClient mClient;
+ 
+     /** The pid of the shell process. 0 if not started and -1 if finished running. */
+-    int mShellPid;
++    protected int mShellPid;
+ 
+     /** The exit status of the shell process. Only valid if ${@link #mShellPid} is -1. */
+     int mShellExitStatus;

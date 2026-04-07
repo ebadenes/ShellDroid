@@ -1,6 +1,20 @@
 FROM cimg/android:2024.11-ndk
 USER root
+
+# Native build deps not in the base image
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    cmake ninja-build pkg-config && rm -rf /var/lib/apt/lists/*
-USER circleci
+    cmake ninja-build pkg-config \
+    && rm -rf /var/lib/apt/lists/*
+
+# Make the Android SDK + NDK fully accessible by any UID (we run as host UID via --user).
+# /home/circleci itself is 700 by default, blocking traversal — open it up.
+# SDK must be writable because AGP may install missing build-tools/platforms on first run.
+RUN chmod a+rx /home/circleci \
+    && chmod -R a+rwX /home/circleci/android-sdk
+
+# Persistent env vars so any user inside the container finds the SDK.
+ENV ANDROID_HOME=/home/circleci/android-sdk \
+    ANDROID_SDK_ROOT=/home/circleci/android-sdk \
+    ANDROID_NDK_HOME=/home/circleci/android-sdk/ndk
+
 WORKDIR /work

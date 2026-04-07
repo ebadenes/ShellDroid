@@ -4,6 +4,10 @@
 .vscode/
 .fleet/
 
+# Kotlin daemon / Android analytics (generated)
+.kotlin/
+.android/
+
 # Claude / agents (local-only)
 .claude/
 .serena/
@@ -21,6 +25,8 @@ ShellDroid*
 
 # Gradle
 .gradle/
+.gradle-home/
+.docker-cache/
 build/
 captures/
 local.properties
@@ -38,11 +44,13 @@ local.properties
 *.ap_
 *.dex
 
-# Vendor build outputs
-vendor/termux-app/build/
-vendor/termux-app/*/build/
-vendor/libssh/build/
-vendor/mbedtls/build/
+# Vendor: cloned via vendor/setup.sh, not tracked
+vendor/termux-app/
+vendor/libssh/
+vendor/mbedtls/
+# (Build artifacts redundantly ignored in case vendor/ is later tracked as submodules)
+vendor/*/build/
+vendor/*/*/build/
 
 # Logs
 *.log
