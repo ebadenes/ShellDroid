@@ -1,26 +1,103 @@
 #include <jni.h>
 #include <string.h>
 #include <stdlib.h>
+#include <unistd.h>
+#include <fcntl.h>
+#include <errno.h>
+#include <sys/syscall.h>
+#include <android/log.h>
 #include <libssh/libssh.h>
+#include <mbedtls/ctr_drbg.h>
+
+#define LOG_TAG "shelldroid_ssh"
+#define LOGI(...) __android_log_print(ANDROID_LOG_INFO, LOG_TAG, __VA_ARGS__)
+#define LOGE(...) __android_log_print(ANDROID_LOG_ERROR, LOG_TAG, __VA_ARGS__)
 
 /* Forward declarations from libssh internal pki.h — these symbols are
  * present in the static archive even though not in the public LIBSSH_API. */
 extern int ssh_pki_export_pubkey_blob(const ssh_key key, ssh_string *pblob);
 extern int ssh_pki_import_pubkey_blob(const ssh_string key_blob, ssh_key *pkey);
 
+/* libssh exposes its global CTR_DRBG so we can reseed it after the
+ * broken-on-Android init path in ssh_crypto_init(). */
+extern mbedtls_ctr_drbg_context *ssh_get_mbedtls_ctr_drbg_context(void);
+
+/* ------------------------------------------------------------------
+ * Android entropy source.
+ *
+ * mbedtls's platform entropy on Android bionic falls through to
+ * fopen("/dev/urandom") because HAVE_GETRANDOM is gated on __GLIBC__
+ * (bionic is NOT glibc). That path fails in libssh's first seed,
+ * and libssh then frees the DRBG context but STILL marks init=1
+ * and returns SSH_OK (bug in libssh 0.11 libmbedcrypto.c:1066-1100).
+ *
+ * The next ssh_mbedtls_random() dereferences a NULL f_entropy inside
+ * mbedtls_ctr_drbg_reseed_internal, producing SIGSEGV during the
+ * curve25519 KEX.
+ *
+ * Workaround: after ssh_init(), re-seed libssh's global CTR_DRBG
+ * ourselves with a custom entropy callback that uses getrandom(2)
+ * directly (Android bionic exposes it since API 28, plus syscall
+ * fallback). We also keep /dev/urandom read(2) as a second fallback.
+ * ------------------------------------------------------------------ */
+static int shelldroid_entropy(void *data, unsigned char *output, size_t len) {
+    (void)data;
+    size_t got = 0;
+    while (got < len) {
+        ssize_t n;
+#if defined(SYS_getrandom)
+        n = (ssize_t)syscall(SYS_getrandom, output + got, len - got, 0);
+#else
+        n = -1; errno = ENOSYS;
+#endif
+        if (n > 0) {
+            got += (size_t)n;
+            continue;
+        }
+        if (n < 0 && errno == EINTR) continue;
+        /* Fallback: /dev/urandom via open/read (never fopen). */
+        int fd = open("/dev/urandom", O_RDONLY | O_CLOEXEC);
+        if (fd < 0) return -1;
+        while (got < len) {
+            ssize_t r = read(fd, output + got, len - got);
+            if (r > 0) { got += (size_t)r; continue; }
+            if (r < 0 && errno == EINTR) continue;
+            close(fd);
+            return -1;
+        }
+        close(fd);
+        break;
+    }
+    return 0;
+}
+
 /* ------------------------------------------------------------------
  * JNI_OnLoad — called once when System.loadLibrary() completes.
- *
- * libssh 0.11 requires an explicit ssh_init() before any other API call.
- * With the mbedTLS backend this is where ssh_crypto_init() runs and
- * seeds the global CTR_DRBG context with entropy. Skipping it leaves
- * ctr_drbg->f_entropy == NULL and the first KEX dereferences a null
- * function pointer deep inside mbedtls_ctr_drbg_reseed_internal.
  * ------------------------------------------------------------------ */
 JNIEXPORT jint JNICALL
 JNI_OnLoad(JavaVM* vm, void* reserved) {
     (void)vm; (void)reserved;
+
+    /* Let libssh run its normal init. On Android this silently corrupts
+     * the DRBG (see comment above); we repair it right after. */
     ssh_init();
+
+    mbedtls_ctr_drbg_context *ctx = ssh_get_mbedtls_ctr_drbg_context();
+    if (ctx != NULL) {
+        /* Free whatever libssh left behind and re-seed with a working
+         * entropy source. ctr_drbg_free is safe to call twice. */
+        mbedtls_ctr_drbg_free(ctx);
+        mbedtls_ctr_drbg_init(ctx);
+        int rc = mbedtls_ctr_drbg_seed(ctx, shelldroid_entropy, NULL, NULL, 0);
+        if (rc != 0) {
+            LOGE("mbedtls_ctr_drbg_seed failed: -0x%x", -rc);
+        } else {
+            LOGI("shelldroid CTR_DRBG seeded via getrandom/urandom");
+        }
+    } else {
+        LOGE("ssh_get_mbedtls_ctr_drbg_context returned NULL");
+    }
+
     return JNI_VERSION_1_6;
 }
 

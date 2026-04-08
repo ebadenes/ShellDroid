@@ -77,6 +77,7 @@ target_link_libraries(shelldroid_ssh PRIVATE
     ssh
     mbedtls mbedx509 mbedcrypto
     ${log-lib}
+    android
 )
 
 # Pull in all libssh symbols (so nm shows them in the final .so for sanity).
