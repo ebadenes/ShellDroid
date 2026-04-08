@@ -72,86 +72,90 @@ class TerminalViewModel @Inject constructor(
      * Safe to call multiple times: subsequent invocations after a successful
      * start are ignored.
      */
+    @Volatile private var starting: Boolean = false
+
+    /**
+     * Open a shell on the active session for [hostId] and begin pumping
+     * I/O. Idempotent: repeated calls while a session is already up (or
+     * being set up) return immediately. The actual openShell call is
+     * dispatched to IO so the main-thread layout listener does not block.
+     */
     fun start(hostId: String, cols: Int, rows: Int, cellW: Int, cellH: Int) {
         Log.d(TAG, "start(host=$hostId, ${cols}x${rows} cell=${cellW}x${cellH}) sessionAlreadySet=${_session.value != null}")
-        if (_session.value != null) return
+        if (_session.value != null || starting) return
+        starting = true
         _state.value = TerminalState.Connecting
 
-        val client = sessionManager.getClient(hostId)
-        if (client == null) {
-            Log.e(TAG, "getClient($hostId) returned null — no warm SSH session")
-            _state.value = TerminalState.Error("no active session for host $hostId")
-            return
-        }
-        Log.d(TAG, "got warm LibSshClient, opening shell")
-
-        val ch: ShellChannel = try {
-            client.openShell(cols, rows)
-        } catch (t: Throwable) {
-            Log.e(TAG, "openShell failed", t)
-            _state.value = TerminalState.Error("openShell failed: ${t.message}")
-            return
-        }
-        Log.d(TAG, "openShell ok, starting reader")
-        channel = ch
-        val termIo = ShellChannelTerminalIo(ch).also { io = it }
-
-        val session = SshTerminalSession(
-            io = termIo,
-            ioScope = viewModelScope,
-            mainExecutor = mainExecutor,
-            client = NoOpTerminalSessionClient(),
-        )
-        session.initializeEmulator(cols, rows, cellW, cellH)
-        _session.value = session
-        _state.value = TerminalState.Running
-
-        // With a PTY allocated, the remote tty merges stderr into stdout,
-        // so we only need a single reader. Running two concurrent
-        // ssh_channel_read calls (stdout + stderr) on the same session races
-        // inside libssh's internal state machine and can corrupt the
-        // channel so that subsequent ssh_channel_write calls return
-        // SSH_ERROR — observed on-device as "io.write returned -1" while
-        // output still rendered fine.
-        readStdoutJob = viewModelScope.launch(Dispatchers.IO) {
-            val buf = ByteArray(4096)
-            var total = 0L
-            // Polling read so that cancellation is cooperative. 200 ms is
-            // short enough to feel snappy on back-out but long enough that
-            // we are not burning CPU when idle. On timeout we just loop.
-            while (isActive) {
-                val n = try {
-                    ch.readStdoutTimeout(buf, 200)
-                } catch (t: Throwable) {
-                    Log.e(TAG, "read error", t)
-                    _state.value = TerminalState.Error("read error: ${t.message}")
-                    break
-                }
-                // libssh returns SSH_AGAIN (-2) when the timeout hit with
-                // no data, NOT 0 (0 means EOF). -1 is a real error. Keep
-                // polling on -2, exit on anything else <=0.
-                if (n == -2) continue
-                if (n <= 0) {
-                    Log.d(TAG, "reader: read returned $n, total=$total, exiting")
-                    break
-                }
-                total += n
-                val copy = buf.copyOf(n)
-                session.feedFromShell(copy, n)
+        viewModelScope.launch {
+            val client = sessionManager.getClient(hostId)
+            if (client == null) {
+                Log.e(TAG, "getClient($hostId) returned null — no warm SSH session")
+                _state.value = TerminalState.Error("no active session for host $hostId")
+                starting = false
+                return@launch
             }
-            _state.value = TerminalState.Closed
+            Log.d(TAG, "got warm LibSshClient, opening shell")
+
+            val ch: ShellChannel = try {
+                client.openShell(cols, rows)
+            } catch (t: Throwable) {
+                Log.e(TAG, "openShell failed", t)
+                _state.value = TerminalState.Error("openShell failed: ${t.message}")
+                starting = false
+                return@launch
+            }
+            Log.d(TAG, "openShell ok, starting reader")
+            channel = ch
+            val termIo = ShellChannelTerminalIo(ch).also { io = it }
+
+            val session = SshTerminalSession(
+                io = termIo,
+                ioScope = viewModelScope,
+                mainExecutor = mainExecutor,
+                client = NoOpTerminalSessionClient(),
+            )
+            session.initializeEmulator(cols, rows, cellW, cellH)
+            _session.value = session
+            _state.value = TerminalState.Running
+            starting = false
+
+            // Single reader: PTY merges stderr into stdout. Polling read
+            // so cancellation is cooperative. 50 ms polls so writes never
+            // wait more than ~50 ms for the session mutex.
+            readStdoutJob = viewModelScope.launch(Dispatchers.IO) {
+                val buf = ByteArray(4096)
+                var total = 0L
+                while (isActive) {
+                    val n = try {
+                        ch.readStdoutTimeout(buf, 50)
+                    } catch (t: Throwable) {
+                        Log.e(TAG, "read error", t)
+                        _state.value = TerminalState.Error("read error: ${t.message}")
+                        break
+                    }
+                    if (n == -2) continue // SSH_AGAIN: timeout, keep polling
+                    if (n <= 0) {
+                        Log.d(TAG, "reader: read returned $n, total=$total, exiting")
+                        break
+                    }
+                    total += n
+                    val copy = buf.copyOf(n)
+                    session.feedFromShell(copy, n)
+                }
+                _state.value = TerminalState.Closed
+            }
         }
     }
 
     /**
-     * Forward a layout change to the local emulator (cheap, main-thread OK)
-     * and to the remote PTY (JNI call into libssh, must NOT block main —
-     * dispatched to IO).
+     * Forward a layout change to the local emulator (synchronous, cheap)
+     * and to the remote PTY (suspending JNI call through the session
+     * mutex, dispatched via the VM scope).
      */
     fun resize(cols: Int, rows: Int, cellW: Int, cellH: Int) {
         _session.value?.emulator?.resize(cols, rows, cellW, cellH)
         val currentIo = io ?: return
-        viewModelScope.launch(Dispatchers.IO) {
+        viewModelScope.launch {
             try {
                 currentIo.resize(cols, rows)
             } catch (_: Throwable) {
@@ -186,7 +190,7 @@ class TerminalViewModel @Inject constructor(
      */
     private fun drainReaderAndClose(job: Job?, session: SshTerminalSession?) {
         runBlocking {
-            withTimeoutOrNull(600) {
+            withTimeoutOrNull(800) {
                 withContext(NonCancellable) {
                     try {
                         job?.cancel()
@@ -194,15 +198,13 @@ class TerminalViewModel @Inject constructor(
                     } catch (_: Throwable) {
                         // ignore
                     }
+                    try {
+                        session?.closeChannel()
+                    } catch (_: Throwable) {
+                        // ignore
+                    }
                 }
             }
-        }
-        // Close outside the block so it runs whether the join finished or
-        // the timeout fired. closeChannel is idempotent and cheap.
-        try {
-            session?.closeChannel()
-        } catch (_: Throwable) {
-            // ignore
         }
     }
 

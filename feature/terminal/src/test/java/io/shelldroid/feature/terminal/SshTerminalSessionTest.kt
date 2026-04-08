@@ -18,8 +18,8 @@ class SshTerminalSessionTest {
             writes.add(data.copyOfRange(off, off + len))
             return len
         }
-        override fun resize(cols: Int, rows: Int) { lastResize = cols to rows }
-        override fun close() { closed = true }
+        override suspend fun resize(cols: Int, rows: Int) { lastResize = cols to rows }
+        override suspend fun close() { closed = true }
     }
 
     private fun newSession(

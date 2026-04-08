@@ -49,11 +49,10 @@ class SshTerminalSession(
             return
         }
         em.resize(cols, rows, cellW, cellH)
-        // io.resize hits libssh via JNI and can block on a network round
-        // trip for the pty window-change packet. Never run that on the
-        // main thread — it froze the UI on screen unlock during on-device
-        // testing.
-        ioScope.launch(Dispatchers.IO) {
+        // io.resize is suspend and acquires the session mutex via
+        // ShellChannel. Launch from ioScope so we don't block whoever
+        // called updateSize (usually TerminalView layout pass on main).
+        ioScope.launch {
             try {
                 io.resize(cols, rows)
             } catch (_: Throwable) {
@@ -97,8 +96,12 @@ class SshTerminalSession(
         // no-op
     }
 
-    /** Close the underlying channel and mark the session finished. */
-    fun closeChannel() {
+    /**
+     * Close the underlying channel and mark the session finished. Suspend
+     * because [io.close] acquires the session mutex and does a native
+     * libssh round trip.
+     */
+    suspend fun closeChannel() {
         try {
             io.close()
         } catch (_: Throwable) {

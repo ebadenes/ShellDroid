@@ -29,7 +29,16 @@ import kotlinx.coroutines.withContext
 class LibSshClient internal constructor() {
 
     @Volatile private var sessionPtr: Long = 0L
-    internal val writeMutex = Mutex()
+
+    /**
+     * Gates ALL libssh operations on this session. libssh 0.11 is not
+     * safe for concurrent operations on the same session: reads, writes,
+     * channel open/close, keepalives etc. all manipulate the same packet
+     * state machine. Running any two simultaneously corrupts the AEAD
+     * sequence counter and produces "Packet len too high" on subsequent
+     * decryptions.
+     */
+    internal val sessionMutex = Mutex()
 
     /**
      * Allocates a libssh session and runs `ssh_connect`. Does NOT authenticate
@@ -131,31 +140,36 @@ class LibSshClient internal constructor() {
         }
 
     /**
-     * Opens a shell channel with a PTY. The returned [ShellChannel] shares
-     * the [writeMutex] for serialization.
+     * Opens a shell channel with a PTY. Suspending because each step
+     * (channel_open, request_pty, request_shell) does a network round
+     * trip. The returned [ShellChannel] shares the [sessionMutex] so
+     * reads, writes, resize and close all serialize on the same lock.
      */
-    fun openShell(cols: Int, rows: Int, term: String = "xterm-256color"): ShellChannel {
-        val s = sessionPtr
-        require(s != 0L) { "not connected" }
-        val ch = LibSsh.nativeNewChannel(s)
-        if (ch == 0L) throw SshConnectException.Unknown("ssh_channel_new() returned null")
+    suspend fun openShell(cols: Int, rows: Int, term: String = "xterm-256color"): ShellChannel =
+        sessionMutex.withLock {
+            withContext(Dispatchers.IO) {
+                val s = sessionPtr
+                require(s != 0L) { "not connected" }
+                val ch = LibSsh.nativeNewChannel(s)
+                if (ch == 0L) throw SshConnectException.Unknown("ssh_channel_new() returned null")
 
-        if (LibSsh.nativeOpenSession(ch) != LibSsh.SSH_OK) {
-            LibSsh.nativeChannelFree(ch)
-            throw SshConnectException.Unknown("open_session failed: ${LibSsh.nativeGetError(s)}")
+                if (LibSsh.nativeOpenSession(ch) != LibSsh.SSH_OK) {
+                    LibSsh.nativeChannelFree(ch)
+                    throw SshConnectException.Unknown("open_session failed: ${LibSsh.nativeGetError(s)}")
+                }
+                if (LibSsh.nativeRequestPty(ch, term, cols, rows) != LibSsh.SSH_OK) {
+                    LibSsh.nativeChannelClose(ch)
+                    LibSsh.nativeChannelFree(ch)
+                    throw SshConnectException.Unknown("request_pty failed: ${LibSsh.nativeGetError(s)}")
+                }
+                if (LibSsh.nativeShell(ch) != LibSsh.SSH_OK) {
+                    LibSsh.nativeChannelClose(ch)
+                    LibSsh.nativeChannelFree(ch)
+                    throw SshConnectException.Unknown("request_shell failed: ${LibSsh.nativeGetError(s)}")
+                }
+                ShellChannel(ch, sessionMutex)
+            }
         }
-        if (LibSsh.nativeRequestPty(ch, term, cols, rows) != LibSsh.SSH_OK) {
-            LibSsh.nativeChannelClose(ch)
-            LibSsh.nativeChannelFree(ch)
-            throw SshConnectException.Unknown("request_pty failed: ${LibSsh.nativeGetError(s)}")
-        }
-        if (LibSsh.nativeShell(ch) != LibSsh.SSH_OK) {
-            LibSsh.nativeChannelClose(ch)
-            LibSsh.nativeChannelFree(ch)
-            throw SshConnectException.Unknown("request_shell failed: ${LibSsh.nativeGetError(s)}")
-        }
-        return ShellChannel(ch, writeMutex)
-    }
 
     /** Returns the last libssh error string, or null if not connected. */
     fun lastError(): String? =
@@ -195,50 +209,59 @@ class LibSshClient internal constructor() {
  */
 class ShellChannel internal constructor(
     private var channelPtr: Long,
-    private val writeMutex: Mutex,
+    private val sessionMutex: Mutex,
 ) {
-    /** Read up to `buf.size` bytes from stdout. Returns bytes read, 0 on EOF, <0 on error. */
-    suspend fun readStdout(buf: ByteArray): Int = withContext(Dispatchers.IO) {
-        runInterruptible { LibSsh.nativeChannelRead(channelPtr, buf, 0) }
-    }
-
     /**
      * Polling read with a timeout in milliseconds. Returns bytes read, 0 on
-     * timeout (no data yet), or negative on error/EOF. Used by the terminal
-     * reader loop so that coroutine cancellation is observed cooperatively
-     * and we never close the channel from a different thread while a read
-     * is in flight — which corrupts the libssh session cipher state and
-     * makes the next ssh_channel_open_session return garbage.
+     * EOF, -2 (SSH_AGAIN) on timeout, -1 on error. The mutex is held only
+     * for the duration of a single native call so writers can slip in
+     * between polls. Keep [timeoutMs] small (<=100 ms) to bound write
+     * latency when the reader is idle.
      */
-    suspend fun readStdoutTimeout(buf: ByteArray, timeoutMs: Int): Int = withContext(Dispatchers.IO) {
-        LibSsh.nativeChannelReadTimeout(channelPtr, buf, 0, timeoutMs)
-    }
-
-    /** Read up to `buf.size` bytes from stderr. */
-    suspend fun readStderr(buf: ByteArray): Int = withContext(Dispatchers.IO) {
-        runInterruptible { LibSsh.nativeChannelRead(channelPtr, buf, 1) }
-    }
-
-    /** Serialized write of `len` bytes from `data` starting at `off`. */
-    suspend fun write(data: ByteArray, off: Int = 0, len: Int = data.size): Int =
-        writeMutex.withLock {
+    suspend fun readStdoutTimeout(buf: ByteArray, timeoutMs: Int): Int =
+        sessionMutex.withLock {
             withContext(Dispatchers.IO) {
-                runInterruptible { LibSsh.nativeChannelWrite(channelPtr, data, off, len) }
+                if (channelPtr == 0L) -1
+                else LibSsh.nativeChannelReadTimeout(channelPtr, buf, 0, timeoutMs)
             }
         }
 
-    /** Notifies the remote of a new window size. */
-    fun resize(cols: Int, rows: Int) {
-        if (channelPtr != 0L) LibSsh.nativeChangePtySize(channelPtr, cols, rows)
+    /** Serialized write of `len` bytes from `data` starting at `off`. */
+    suspend fun write(data: ByteArray, off: Int = 0, len: Int = data.size): Int =
+        sessionMutex.withLock {
+            withContext(Dispatchers.IO) {
+                if (channelPtr == 0L) -1
+                else LibSsh.nativeChannelWrite(channelPtr, data, off, len)
+            }
+        }
+
+    /**
+     * Suspending resize that serializes with reads/writes. The pty
+     * window-change packet is a full network round trip.
+     */
+    suspend fun resize(cols: Int, rows: Int) {
+        sessionMutex.withLock {
+            withContext(Dispatchers.IO) {
+                if (channelPtr != 0L) LibSsh.nativeChangePtySize(channelPtr, cols, rows)
+            }
+        }
     }
 
-    /** Closes and frees the channel. Idempotent. */
-    fun close() {
-        val c = channelPtr
-        if (c != 0L) {
-            channelPtr = 0L
-            try { LibSsh.nativeChannelClose(c) } catch (_: Throwable) {}
-            try { LibSsh.nativeChannelFree(c) } catch (_: Throwable) {}
+    /**
+     * Suspending close that serializes with any in-flight read/write on
+     * the same session. After this returns the channel pointer is 0 and
+     * subsequent read/write calls short-circuit to -1.
+     */
+    suspend fun close() {
+        sessionMutex.withLock {
+            withContext(Dispatchers.IO) {
+                val c = channelPtr
+                if (c != 0L) {
+                    channelPtr = 0L
+                    try { LibSsh.nativeChannelClose(c) } catch (_: Throwable) {}
+                    try { LibSsh.nativeChannelFree(c) } catch (_: Throwable) {}
+                }
+            }
         }
     }
 }
