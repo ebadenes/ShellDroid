@@ -186,14 +186,18 @@ Java_io_shelldroid_ssh_native_1_LibSsh_nativeSetOptionInt(JNIEnv* env, jclass cl
     ssh_session s = (ssh_session)(intptr_t)sessionPtr;
     if (!s || !option) return SSH_ERROR;
     const char* opt = (*env)->GetStringUTFChars(env, option, NULL);
-    int v = (int)value;
     int rc = SSH_OK;
-    enum ssh_options_e o;
-    if (strcmp(opt, "port") == 0)         o = SSH_OPTIONS_PORT;
-    else if (strcmp(opt, "timeout") == 0) o = SSH_OPTIONS_TIMEOUT;
-    else { rc = SSH_ERROR; goto done; }
-    rc = ssh_options_set(s, o, &v);
-done:
+    if (strcmp(opt, "port") == 0) {
+        /* SSH_OPTIONS_PORT expects unsigned int* */
+        unsigned int v = (unsigned int)value;
+        rc = ssh_options_set(s, SSH_OPTIONS_PORT, &v);
+    } else if (strcmp(opt, "timeout") == 0) {
+        /* SSH_OPTIONS_TIMEOUT expects long* (seconds), NOT int* */
+        long v = (long)value;
+        rc = ssh_options_set(s, SSH_OPTIONS_TIMEOUT, &v);
+    } else {
+        rc = SSH_ERROR;
+    }
     (*env)->ReleaseStringUTFChars(env, option, opt);
     return rc;
 }
