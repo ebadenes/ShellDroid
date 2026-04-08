@@ -96,20 +96,18 @@ fun TerminalScreen(
                 }
             },
             update = { view ->
-                // Keep the Android view background in sync if the user changes
-                // skins at runtime.
-                view.setBackgroundColor(skin.background)
                 val s = session
                 if (s != null && view.mTermSession !== s) {
                     view.attachSession(s)
+                    view.setBackgroundColor(skin.background)
                     applySkinToEmulator(s, skin)
                     view.requestFocus()
                     showSoftKeyboard(view.context, view)
-                } else if (s != null) {
-                    // Re-apply palette in case the skin flow emitted a new
-                    // value after the session was already attached.
-                    applySkinToEmulator(s, skin)
                 }
+                // Skin changes happen rarely; let the next attachSession
+                // pick them up (or reopen the screen). We skip the per-
+                // recomposition re-apply to avoid useless work on every
+                // unrelated state change (title, etc).
             },
         )
     }
