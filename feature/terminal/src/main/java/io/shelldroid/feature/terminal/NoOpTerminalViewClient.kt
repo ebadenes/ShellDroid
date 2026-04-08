@@ -22,9 +22,10 @@ class NoOpTerminalViewClient : TerminalViewClient {
     override fun onSingleTapUp(e: MotionEvent) { /* no-op */ }
 
     override fun shouldBackButtonBeMappedToEscape(): Boolean = false
-    // Force the IME into char-based mode so predictive typing / swipe input
-    // cannot batch up chars — shells need every keystroke delivered as-is.
-    override fun shouldEnforceCharBasedInput(): Boolean = true
+    // Termux's own default is `false` -> InputType.TYPE_NULL. That works
+    // with Gboard et al. Forcing VISIBLE_PASSWORD | NO_SUGGESTIONS breaks
+    // input on some keyboards so we follow Termux's default.
+    override fun shouldEnforceCharBasedInput(): Boolean = false
     override fun shouldUseCtrlSpaceWorkaround(): Boolean = false
     override fun isTerminalViewSelected(): Boolean = true
 

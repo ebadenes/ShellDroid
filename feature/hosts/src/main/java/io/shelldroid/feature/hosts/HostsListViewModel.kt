@@ -46,6 +46,14 @@ class HostsListViewModel @Inject constructor(
     fun connect(hostId: String) {
         viewModelScope.launch {
             _connectState.value = ConnectState.Connecting(hostId)
+
+            // Reuse an existing warm session if the user is reconnecting
+            // (typical: back from terminal -> tap connect again).
+            if (sessionManager.getClient(hostId) != null) {
+                _connectState.value = ConnectState.Connected(hostId)
+                return@launch
+            }
+
             val host = repo.findById(hostId)
             if (host == null) {
                 _connectState.value = ConnectState.Error(hostId, "Host no encontrado")

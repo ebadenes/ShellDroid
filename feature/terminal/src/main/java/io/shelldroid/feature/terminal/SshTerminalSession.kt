@@ -1,5 +1,6 @@
 package io.shelldroid.feature.terminal
 
+import android.util.Log
 import com.termux.terminal.TerminalEmulator
 import com.termux.terminal.TerminalSession
 import com.termux.terminal.TerminalSessionClient
@@ -57,17 +58,21 @@ class SshTerminalSession(
 
     override fun write(data: ByteArray?, offset: Int, count: Int) {
         if (data == null || count <= 0) return
+        Log.d(TAG, "write(len=$count) bytes=${data.copyOfRange(offset, offset + count).toList()}")
         val copy = data.copyOfRange(offset, offset + count)
         ioScope.launch {
             try {
-                io.write(copy, 0, copy.size)
+                val n = io.write(copy, 0, copy.size)
+                Log.d(TAG, "io.write returned $n")
             } catch (_: CancellationException) {
                 // swallow — scope cancelled
-            } catch (_: Throwable) {
-                // TODO: surface write errors to VM state
+            } catch (t: Throwable) {
+                Log.e(TAG, "io.write failed", t)
             }
         }
     }
+
+    companion object { private const val TAG = "SshTerminalSession" }
 
     /**
      * Feed bytes received from the remote shell into the emulator.

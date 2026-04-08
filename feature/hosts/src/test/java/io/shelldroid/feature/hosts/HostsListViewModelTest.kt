@@ -78,6 +78,7 @@ class HostsListViewModelTest {
         val mgr = mockk<SshSessionManager>()
         val vault = mockk<CredentialVault>()
         every { repo.observeAll() } returns flowOf(emptyList())
+        every { mgr.getClient(any()) } returns null
         coEvery { repo.findById("h1") } returns host()
         coEvery { identityRepo.findById("i1") } returns identity(needsReentry = true)
 
@@ -97,6 +98,7 @@ class HostsListViewModelTest {
         val mgr = mockk<SshSessionManager>()
         val vault = mockk<CredentialVault>()
         every { repo.observeAll() } returns flowOf(emptyList())
+        every { mgr.getClient(any()) } returns null
         coEvery { repo.findById("h1") } returns host(identityId = null)
 
         val vm = HostsListViewModel(repo, identityRepo, mgr, vault)
@@ -114,6 +116,7 @@ class HostsListViewModelTest {
         val mgr = mockk<SshSessionManager>()
         val vault = mockk<CredentialVault>()
         every { repo.observeAll() } returns flowOf(emptyList())
+        every { mgr.getClient(any()) } returns null
         coEvery { repo.findById("nope") } returns null
 
         val vm = HostsListViewModel(repo, identityRepo, mgr, vault)
@@ -130,6 +133,7 @@ class HostsListViewModelTest {
         val mgr = mockk<SshSessionManager>()
         val vault = mockk<CredentialVault>()
         every { repo.observeAll() } returns flowOf(emptyList())
+        every { mgr.getClient(any()) } returns null
 
         val h = host()
         val vm = HostsListViewModel(repo, identityRepo, mgr, vault)
