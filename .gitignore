@@ -44,11 +44,11 @@ local.properties
 *.ap_
 *.dex
 
-# Vendor: cloned via vendor/setup.sh, not tracked
-vendor/termux-app/
-vendor/libssh/
-vendor/mbedtls/
-# (Build artifacts redundantly ignored in case vendor/ is later tracked as submodules)
+# Vendor: cloned via vendor/setup.sh OR symlinked (worktrees), not tracked.
+# Patterns cover both directories and symlinks (symlinks don't match trailing /).
+vendor/termux-app
+vendor/libssh
+vendor/mbedtls
 vendor/*/build/
 vendor/*/*/build/
 
