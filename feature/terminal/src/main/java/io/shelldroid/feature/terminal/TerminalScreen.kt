@@ -1,14 +1,8 @@
 package io.shelldroid.feature.terminal
 
-import android.content.Context
-import android.graphics.Paint
 import android.graphics.Typeface
-import android.util.TypedValue
-import android.view.inputmethod.InputMethodManager
 import androidx.activity.compose.BackHandler
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
@@ -28,14 +22,24 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.viewinterop.AndroidView
+import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.termux.terminal.TextStyle
-import com.termux.view.TerminalView
-import io.shelldroid.feature.terminal.skin.TerminalSkin
+import org.connectbot.terminal.Terminal
 
+/**
+ * Terminal screen built on ConnectBot's termlib. The heavy lifting
+ * (rendering, IME integration, focus, selection, hyperlinks, gesture
+ * handling) is all inside [Terminal]. We only provide:
+ *
+ *  - the [TerminalEmulator] instance (owned by [TerminalBridge] inside
+ *    the [TerminalViewModel]),
+ *  - a [ShellDroidModifierManager] for sticky Ctrl/Alt/Shift state,
+ *  - a [FocusRequester] and a soft-keyboard visibility flag,
+ *  - the top app bar and back-dialog plumbing.
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TerminalScreen(
@@ -43,21 +47,24 @@ fun TerminalScreen(
     onBack: () -> Unit,
     viewModel: TerminalViewModel = hiltViewModel(),
 ) {
-    val session by viewModel.session.collectAsStateWithLifecycle()
     val title by viewModel.title.collectAsStateWithLifecycle()
     val skin by viewModel.skin.collectAsStateWithLifecycle()
+    val emulator by viewModel.bridge.emulator.collectAsStateWithLifecycle()
 
+    val focusRequester = remember { FocusRequester() }
+    val modifierManager = remember { ShellDroidModifierManager() }
+    var showSoftKeyboard by remember { mutableStateOf(true) }
     var showBackDialog by remember { mutableStateOf(false) }
 
-    // Held references so the key bar can operate on the live view.
-    val viewRef = remember { mutableStateOf<TerminalView?>(null) }
-    val clientRef = remember { mutableStateOf<ShellDroidTerminalViewClient?>(null) }
-
-    // Force recomposition of the key bar when the sticky state changes.
-    var ctrlActive by remember { mutableStateOf(false) }
-    var altActive by remember { mutableStateOf(false) }
-
-    LaunchedEffect(hostId) { viewModel.loadTitle(hostId) }
+    LaunchedEffect(hostId, skin.background, skin.foreground) {
+        viewModel.attach(
+            hostId = hostId,
+            cols = 80,
+            rows = 24,
+            foreground = skin.foreground,
+            background = skin.background,
+        )
+    }
 
     BackHandler { showBackDialog = true }
 
@@ -75,18 +82,14 @@ fun TerminalScreen(
                 TextButton(onClick = {
                     showBackDialog = false
                     onBack()
-                }) {
-                    Text("Mantener")
-                }
+                }) { Text("Mantener") }
             },
             dismissButton = {
                 TextButton(onClick = {
                     showBackDialog = false
-                    viewModel.disconnectHost(hostId)
+                    viewModel.disconnectAndDetach()
                     onBack()
-                }) {
-                    Text("Desconectar")
-                }
+                }) { Text("Desconectar") }
             },
         )
     }
@@ -107,115 +110,32 @@ fun TerminalScreen(
             )
         },
     ) { inner ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(inner)
-                .imePadding(),
-        ) {
-            AndroidView(
+        val em = emulator
+        if (em != null) {
+            Terminal(
+                terminalEmulator = em,
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .weight(1f),
-                factory = { ctx ->
-                    val textSizePx = TypedValue.applyDimension(
-                        TypedValue.COMPLEX_UNIT_SP,
-                        skin.textSizeSp,
-                        ctx.resources.displayMetrics,
-                    )
-                    val (cellW, cellH) = measureMonoCell(textSizePx)
-
-                    TerminalView(ctx, null).also { view ->
-                        val client = ShellDroidTerminalViewClient(
-                            onTap = {
-                                view.requestFocus()
-                                showSoftKeyboard(ctx, view)
-                            },
-                        )
-                        clientRef.value = client
-                        view.setTerminalViewClient(client)
-                        view.setTextSize(textSizePx.toInt())
-                        view.setBackgroundColor(skin.background)
-
-                        view.isFocusable = true
-                        view.isFocusableInTouchMode = true
-
-                        view.addOnLayoutChangeListener { v, l, t, r, b, _, _, _, _ ->
-                            val w = r - l
-                            val h = b - t
-                            if (w <= 0 || h <= 0) return@addOnLayoutChangeListener
-                            val cols = (w / cellW).coerceAtLeast(1)
-                            val rows = (h / cellH).coerceAtLeast(1)
-                            if (viewModel.session.value == null) {
-                                viewModel.start(hostId, cols, rows, cellW, cellH)
-                            } else {
-                                viewModel.resize(cols, rows, cellW, cellH)
-                            }
-                        }
-
-                        viewRef.value = view
-                    }
+                    .fillMaxSize()
+                    .padding(inner)
+                    .imePadding(),
+                typeface = Typeface.MONOSPACE,
+                initialFontSize = skin.textSizeSp.sp,
+                keyboardEnabled = true,
+                showSoftKeyboard = showSoftKeyboard,
+                focusRequester = focusRequester,
+                forcedSize = null,
+                modifierManager = modifierManager,
+                onSelectionControllerAvailable = { /* no-op for now */ },
+                onTerminalTap = {
+                    // Re-show the keyboard if the user dismissed it.
+                    showSoftKeyboard = true
+                    focusRequester.requestFocus()
                 },
-                update = { view ->
-                    val s = session
-                    if (s != null && view.mTermSession !== s) {
-                        view.attachSession(s)
-                        view.setBackgroundColor(skin.background)
-                        applySkinToEmulator(s, skin)
-                        view.requestFocus()
-                        showSoftKeyboard(view.context, view)
-                    }
+                onImeVisibilityChanged = { visible ->
+                    showSoftKeyboard = visible
                 },
-            )
-
-            TerminalKeyBar(
-                background = Color(skin.background),
-                foreground = Color(skin.foreground),
-                ctrlActive = ctrlActive,
-                altActive = altActive,
-                onAction = { action ->
-                    val v = viewRef.value
-                    val c = clientRef.value
-                    if (v != null && c != null) {
-                        applyKeyAction(action, v, c, showKeyboard = {
-                            v.requestFocus()
-                            showSoftKeyboard(v.context, v)
-                        })
-                        ctrlActive = c.isCtrlSticky()
-                        altActive = c.isAltSticky()
-                    }
-                },
+                onHyperlinkClick = { /* TODO: launch in browser */ },
             )
         }
     }
-}
-
-private fun applySkinToEmulator(session: SshTerminalSession, skin: TerminalSkin) {
-    val em = session.emulator ?: return
-    val colors = em.mColors.mCurrentColors
-    for (i in 0 until 16) colors[i] = skin.ansi[i]
-    colors[TextStyle.COLOR_INDEX_FOREGROUND] = skin.foreground
-    colors[TextStyle.COLOR_INDEX_BACKGROUND] = skin.background
-    colors[TextStyle.COLOR_INDEX_CURSOR] = skin.cursor
-}
-
-private fun showSoftKeyboard(ctx: Context, view: android.view.View) {
-    val imm = ctx.getSystemService(Context.INPUT_METHOD_SERVICE) as? InputMethodManager
-    imm?.showSoftInput(view, InputMethodManager.SHOW_IMPLICIT)
-}
-
-/**
- * Approximate Termux's TerminalRenderer cell dimensions with a Paint
- * that matches its monospace / text size setup.
- */
-private fun measureMonoCell(textSizePx: Float): Pair<Int, Int> {
-    val paint = Paint().apply {
-        typeface = Typeface.MONOSPACE
-        this.textSize = textSizePx
-        isAntiAlias = true
-    }
-    val cellW = paint.measureText("M").toInt().coerceAtLeast(1)
-    val fm = paint.fontMetricsInt
-    val cellH = (fm.descent - fm.ascent).coerceAtLeast(1)
-    return cellW to cellH
 }

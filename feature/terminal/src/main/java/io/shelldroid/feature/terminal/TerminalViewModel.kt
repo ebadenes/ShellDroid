@@ -1,39 +1,26 @@
 package io.shelldroid.feature.terminal
 
-import android.os.Handler
-import android.os.Looper
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import io.shelldroid.core.db.dao.HostDao
-import io.shelldroid.core.ssh.ShellChannel
 import io.shelldroid.core.ssh.SshSessionManager
 import io.shelldroid.feature.terminal.skin.TerminalSkin
 import io.shelldroid.feature.terminal.skin.TerminalSkinRepository
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.NonCancellable
-import kotlinx.coroutines.runBlocking
-import kotlinx.coroutines.withContext
-import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.stateIn
-import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
-sealed interface TerminalState {
-    data object Idle : TerminalState
-    data object Connecting : TerminalState
-    data object Running : TerminalState
-    data class Error(val message: String) : TerminalState
-    data object Closed : TerminalState
-}
-
+/**
+ * Thin wrapper around a [TerminalBridge]. The bridge holds all the
+ * libssh <-> terminal emulator plumbing and outlives the VM for async
+ * cleanup, so `onCleared` never blocks the main thread.
+ */
 @HiltViewModel
 class TerminalViewModel @Inject constructor(
     private val sessionManager: SshSessionManager,
@@ -41,198 +28,66 @@ class TerminalViewModel @Inject constructor(
     skinRepository: TerminalSkinRepository,
 ) : ViewModel() {
 
+    val bridge: TerminalBridge = TerminalBridge(sessionManager)
+
     val skin: StateFlow<TerminalSkin> = skinRepository.selected
         .stateIn(viewModelScope, SharingStarted.Eagerly, skinRepository.current())
-
-    private val _state = MutableStateFlow<TerminalState>(TerminalState.Idle)
-    val state: StateFlow<TerminalState> = _state.asStateFlow()
-
-    private val _session = MutableStateFlow<SshTerminalSession?>(null)
-    val session: StateFlow<SshTerminalSession?> = _session.asStateFlow()
 
     private val _title = MutableStateFlow("Terminal")
     val title: StateFlow<String> = _title.asStateFlow()
 
-    fun loadTitle(hostId: String) {
+    @Volatile private var attached: Boolean = false
+    @Volatile private var currentHostId: String? = null
+
+    /**
+     * Attach to the warm SSH session for [hostId] and spin up the
+     * emulator. Idempotent: repeat calls while attached are no-ops.
+     * Intended to be called once from [TerminalScreen] inside a
+     * [LaunchedEffect] or the [androidx.compose.ui.viewinterop.AndroidView]
+     * factory / layout callback with the real grid dimensions.
+     */
+    fun attach(
+        hostId: String,
+        cols: Int,
+        rows: Int,
+        foreground: Int,
+        background: Int,
+    ) {
+        if (attached) return
+        attached = true
+        currentHostId = hostId
+        Log.d(TAG, "attach(host=$hostId ${cols}x${rows})")
+
+        // Load the host title in the background (cosmetic only).
         viewModelScope.launch {
             val host = hostDao.findById(hostId) ?: return@launch
             _title.value = host.name.ifBlank { "${host.username}@${host.hostname}" }
         }
-    }
 
-    private var io: TerminalIo? = null
-    private var channel: ShellChannel? = null
-    private var readStdoutJob: Job? = null
-
-    private val mainHandler: Handler by lazy { Handler(Looper.getMainLooper()) }
-    private val mainExecutor: (Runnable) -> Unit = { r -> mainHandler.post(r) }
-
-    /**
-     * Open a shell on the active session for [hostId] and begin pumping I/O.
-     * Safe to call multiple times: subsequent invocations after a successful
-     * start are ignored.
-     */
-    @Volatile private var starting: Boolean = false
-
-    /**
-     * Open a shell on the active session for [hostId] and begin pumping
-     * I/O. Idempotent: repeated calls while a session is already up (or
-     * being set up) return immediately. The actual openShell call is
-     * dispatched to IO so the main-thread layout listener does not block.
-     */
-    fun start(hostId: String, cols: Int, rows: Int, cellW: Int, cellH: Int) {
-        Log.d(TAG, "start(host=$hostId, ${cols}x${rows} cell=${cellW}x${cellH}) sessionAlreadySet=${_session.value != null}")
-        if (_session.value != null || starting) return
-        starting = true
-        _state.value = TerminalState.Connecting
-
-        viewModelScope.launch {
-            val client = sessionManager.getClient(hostId)
-            if (client == null) {
-                Log.e(TAG, "getClient($hostId) returned null — no warm SSH session")
-                _state.value = TerminalState.Error("no active session for host $hostId")
-                starting = false
-                return@launch
-            }
-            Log.d(TAG, "got warm LibSshClient, opening shell")
-
-            val ch: ShellChannel = try {
-                client.openShell(cols, rows)
-            } catch (t: Throwable) {
-                Log.e(TAG, "openShell failed", t)
-                _state.value = TerminalState.Error("openShell failed: ${t.message}")
-                starting = false
-                return@launch
-            }
-            Log.d(TAG, "openShell ok, starting reader")
-            channel = ch
-            val termIo = ShellChannelTerminalIo(ch).also { io = it }
-
-            val session = SshTerminalSession(
-                io = termIo,
-                ioScope = viewModelScope,
-                mainExecutor = mainExecutor,
-                client = NoOpTerminalSessionClient(),
-            )
-            session.initializeEmulator(cols, rows, cellW, cellH)
-            _session.value = session
-            _state.value = TerminalState.Running
-            starting = false
-
-            // Reader pattern copied from JuiceSSH: ssh_channel_read_nonblocking
-            // + adaptive sleep backoff (0 ms -> 50 ms). Non-blocking reads
-            // hold the libssh session mutex for a minimal window, so writes
-            // on the same session rarely wait. Blocking-timeout reads did
-            // NOT work reliably — they spent too long inside
-            // ssh_handle_packets_termination and raced with writes, causing
-            // "Packet len too high" AEAD desync.
-            readStdoutJob = viewModelScope.launch(Dispatchers.IO) {
-                val buf = ByteArray(4096)
-                var total = 0L
-                var backoffMs = 0
-                while (isActive) {
-                    val n = try {
-                        ch.readStdoutNonblocking(buf)
-                    } catch (t: Throwable) {
-                        Log.e(TAG, "read error", t)
-                        _state.value = TerminalState.Error("read error: ${t.message}")
-                        break
-                    }
-                    when {
-                        n > 0 -> {
-                            backoffMs = 0
-                            total += n
-                            val copy = buf.copyOf(n)
-                            session.feedFromShell(copy, n)
-                        }
-                        n == 0 -> {
-                            // No data yet. Check EOF before sleeping.
-                            if (ch.isEof()) {
-                                Log.d(TAG, "reader: EOF, total=$total, exiting")
-                                break
-                            }
-                            if (backoffMs < 50) backoffMs += 1
-                            kotlinx.coroutines.delay(backoffMs.toLong())
-                        }
-                        else -> {
-                            Log.d(TAG, "reader: read returned $n, total=$total, exiting")
-                            break
-                        }
-                    }
-                }
-                _state.value = TerminalState.Closed
-            }
-        }
+        bridge.attach(
+            hostId = hostId,
+            initialCols = cols,
+            initialRows = rows,
+            defaultForeground = foreground,
+            defaultBackground = background,
+        )
     }
 
     /**
-     * Forward a layout change to the local emulator (synchronous, cheap)
-     * and to the remote PTY (suspending JNI call through the session
-     * mutex, dispatched via the VM scope).
+     * Hard-disconnect the underlying SSH session. Called from the back
+     * dialog's "Desconectar" option.
      */
-    fun resize(cols: Int, rows: Int, cellW: Int, cellH: Int) {
-        _session.value?.emulator?.resize(cols, rows, cellW, cellH)
-        val currentIo = io ?: return
-        viewModelScope.launch {
-            try {
-                currentIo.resize(cols, rows)
-            } catch (_: Throwable) {
-                // channel may have closed mid-resize
-            }
-        }
-    }
-
-    /**
-     * Hard-disconnect the underlying SSH session for [hostId]. Unlike
-     * [onCleared] (which only tears down the shell channel and leaves
-     * the session warm in [SshSessionManager]), this fully disconnects
-     * from the remote server. Used when the user explicitly chooses
-     * "Disconnect" on the back dialog.
-     */
-    fun disconnectHost(hostId: String) {
-        Log.d(TAG, "disconnectHost($hostId) — tearing down warm session")
-        val job = readStdoutJob
-        val session = _session.value
-        _session.value = null
-        drainReaderAndClose(job, session)
-        sessionManager.disconnect(hostId)
-    }
-
-    /**
-     * Stop the reader and close the channel, bounded by a short timeout
-     * so we never hang the main thread. In the happy path the reader is
-     * polling with a 200 ms timeout, so cancel + join returns in <=200 ms.
-     * In a pathological case (session already corrupted, native read
-     * wedged), we give up after a bit and leak the channel — this avoids
-     * ANRs when the user taps Back on a broken session.
-     */
-    private fun drainReaderAndClose(job: Job?, session: SshTerminalSession?) {
-        runBlocking {
-            withTimeoutOrNull(800) {
-                withContext(NonCancellable) {
-                    try {
-                        job?.cancel()
-                        job?.join()
-                    } catch (_: Throwable) {
-                        // ignore
-                    }
-                    try {
-                        session?.closeChannel()
-                    } catch (_: Throwable) {
-                        // ignore
-                    }
-                }
-            }
-        }
+    fun disconnectAndDetach() {
+        Log.d(TAG, "disconnectAndDetach($currentHostId)")
+        bridge.detach(disconnectSession = true)
+        attached = false
     }
 
     override fun onCleared() {
-        Log.d(TAG, "onCleared — cancelling reader and closing channel")
         super.onCleared()
-        val job = readStdoutJob
-        val session = _session.value
-        _session.value = null
-        drainReaderAndClose(job, session)
+        Log.d(TAG, "onCleared — detaching bridge (session stays warm)")
+        bridge.detach(disconnectSession = false)
+        attached = false
     }
 
     companion object { private const val TAG = "TerminalVM" }
