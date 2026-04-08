@@ -20,7 +20,7 @@ import javax.inject.Singleton
  */
 @Singleton
 class CurrentUserProvider @Inject constructor(
-    private val dataStore: DataStore<Preferences>,
+    @UserPrefsDataStore private val dataStore: DataStore<Preferences>,
     private val userDao: UserDao,
 ) {
     suspend fun current(): User {

@@ -49,6 +49,7 @@ object DatabaseModule {
 
     @Provides
     @Singleton
+    @UserPrefsDataStore
     fun provideDataStore(@ApplicationContext ctx: Context): DataStore<Preferences> =
         ctx.shelldroidDataStore
 

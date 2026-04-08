@@ -45,7 +45,7 @@ enum class AutoLockMode(val seconds: Long) {
 @Singleton
 class LockManager @Inject constructor(
     private val vault: CredentialVault,
-    private val dataStore: DataStore<Preferences>
+    @SecurityDataStore private val dataStore: DataStore<Preferences>
 ) {
 
     suspend fun isLocked(): Boolean {

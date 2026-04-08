@@ -29,6 +29,7 @@ object SecurityModule {
 
     @Provides
     @Singleton
+    @SecurityDataStore
     fun provideSecurityDataStore(@ApplicationContext ctx: Context): DataStore<Preferences> =
         ctx.securityDataStore
 }
