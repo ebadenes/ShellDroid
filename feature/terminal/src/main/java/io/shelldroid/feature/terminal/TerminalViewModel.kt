@@ -119,28 +119,46 @@ class TerminalViewModel @Inject constructor(
             _state.value = TerminalState.Running
             starting = false
 
-            // Single reader: PTY merges stderr into stdout. Polling read
-            // so cancellation is cooperative. 50 ms polls so writes never
-            // wait more than ~50 ms for the session mutex.
+            // Reader pattern copied from JuiceSSH: ssh_channel_read_nonblocking
+            // + adaptive sleep backoff (0 ms -> 50 ms). Non-blocking reads
+            // hold the libssh session mutex for a minimal window, so writes
+            // on the same session rarely wait. Blocking-timeout reads did
+            // NOT work reliably — they spent too long inside
+            // ssh_handle_packets_termination and raced with writes, causing
+            // "Packet len too high" AEAD desync.
             readStdoutJob = viewModelScope.launch(Dispatchers.IO) {
                 val buf = ByteArray(4096)
                 var total = 0L
+                var backoffMs = 0
                 while (isActive) {
                     val n = try {
-                        ch.readStdoutTimeout(buf, 50)
+                        ch.readStdoutNonblocking(buf)
                     } catch (t: Throwable) {
                         Log.e(TAG, "read error", t)
                         _state.value = TerminalState.Error("read error: ${t.message}")
                         break
                     }
-                    if (n == -2) continue // SSH_AGAIN: timeout, keep polling
-                    if (n <= 0) {
-                        Log.d(TAG, "reader: read returned $n, total=$total, exiting")
-                        break
+                    when {
+                        n > 0 -> {
+                            backoffMs = 0
+                            total += n
+                            val copy = buf.copyOf(n)
+                            session.feedFromShell(copy, n)
+                        }
+                        n == 0 -> {
+                            // No data yet. Check EOF before sleeping.
+                            if (ch.isEof()) {
+                                Log.d(TAG, "reader: EOF, total=$total, exiting")
+                                break
+                            }
+                            if (backoffMs < 50) backoffMs += 1
+                            kotlinx.coroutines.delay(backoffMs.toLong())
+                        }
+                        else -> {
+                            Log.d(TAG, "reader: read returned $n, total=$total, exiting")
+                            break
+                        }
                     }
-                    total += n
-                    val copy = buf.copyOf(n)
-                    session.feedFromShell(copy, n)
                 }
                 _state.value = TerminalState.Closed
             }

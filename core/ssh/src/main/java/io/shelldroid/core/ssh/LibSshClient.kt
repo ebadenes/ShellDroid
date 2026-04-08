@@ -226,6 +226,28 @@ class ShellChannel internal constructor(
             }
         }
 
+    /**
+     * Non-blocking read that returns the number of bytes read, 0 if no
+     * data is buffered yet (caller should poll again after a short
+     * sleep), or negative on error. Hold time inside libssh is very
+     * short so writers rarely block on the session mutex. Matches the
+     * JuiceSSH pattern.
+     */
+    suspend fun readStdoutNonblocking(buf: ByteArray): Int =
+        sessionMutex.withLock {
+            withContext(Dispatchers.IO) {
+                if (channelPtr == 0L) -1
+                else LibSsh.nativeChannelReadNonblocking(channelPtr, buf, 0)
+            }
+        }
+
+    suspend fun isEof(): Boolean =
+        sessionMutex.withLock {
+            withContext(Dispatchers.IO) {
+                channelPtr == 0L || LibSsh.nativeChannelIsEof(channelPtr) != 0
+            }
+        }
+
     /** Serialized write of `len` bytes from `data` starting at `off`. */
     suspend fun write(data: ByteArray, off: Int = 0, len: Int = data.size): Int =
         sessionMutex.withLock {

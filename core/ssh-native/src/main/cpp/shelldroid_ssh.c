@@ -71,12 +71,24 @@ static int shelldroid_entropy(void *data, unsigned char *output, size_t len) {
     return 0;
 }
 
+/* Forward declare libssh's threading API so we can force pthread
+ * callbacks explicitly at load time. libssh 0.11's default behaviour
+ * on POSIX is to pick pthread, but we've been hit by concurrency
+ * races that look like the default didn't kick in. Being explicit is
+ * cheap insurance. */
+struct ssh_threads_callbacks_struct;
+extern struct ssh_threads_callbacks_struct *ssh_threads_get_pthread(void);
+extern int ssh_threads_set_callbacks(struct ssh_threads_callbacks_struct *cb);
+
 /* ------------------------------------------------------------------
  * JNI_OnLoad — called once when System.loadLibrary() completes.
  * ------------------------------------------------------------------ */
 JNIEXPORT jint JNICALL
 JNI_OnLoad(JavaVM* vm, void* reserved) {
     (void)vm; (void)reserved;
+
+    /* Enable pthread locking in libssh BEFORE ssh_init. */
+    ssh_threads_set_callbacks(ssh_threads_get_pthread());
 
     /* Let libssh run its normal init. On Android this silently corrupts
      * the DRBG (see comment above); we repair it right after. */
@@ -493,6 +505,36 @@ Java_io_shelldroid_ssh_native_1_LibSsh_nativeChannelReadTimeout(JNIEnv* env, jcl
     int n = ssh_channel_read_timeout(c, buf, (uint32_t)cap, isStderr ? 1 : 0, timeoutMs);
     (*env)->ReleaseByteArrayElements(env, buffer, buf, 0);
     return n;
+}
+
+/*
+ * Non-blocking read. Returns 0 immediately if no data is buffered yet,
+ * positive byte count if data is available, or SSH_ERROR on error.
+ * Caller must check ssh_channel_is_eof separately to distinguish a
+ * legitimate zero return from end-of-stream. This is the pattern
+ * JuiceSSH uses (adaptive sleep backoff) and is significantly less
+ * contended with writes than ssh_channel_read_timeout.
+ */
+JNIEXPORT jint JNICALL
+Java_io_shelldroid_ssh_native_1_LibSsh_nativeChannelReadNonblocking(JNIEnv* env, jclass clazz,
+        jlong channelPtr, jbyteArray buffer, jint isStderr) {
+    (void)clazz;
+    ssh_channel c = (ssh_channel)(intptr_t)channelPtr;
+    if (!c || !buffer) return SSH_ERROR;
+    jsize cap = (*env)->GetArrayLength(env, buffer);
+    jbyte* buf = (*env)->GetByteArrayElements(env, buffer, NULL);
+    int n = ssh_channel_read_nonblocking(c, buf, (uint32_t)cap, isStderr ? 1 : 0);
+    (*env)->ReleaseByteArrayElements(env, buffer, buf, 0);
+    return n;
+}
+
+JNIEXPORT jint JNICALL
+Java_io_shelldroid_ssh_native_1_LibSsh_nativeChannelIsEof(JNIEnv* env, jclass clazz,
+        jlong channelPtr) {
+    (void)env; (void)clazz;
+    ssh_channel c = (ssh_channel)(intptr_t)channelPtr;
+    if (!c) return 1;
+    return ssh_channel_is_eof(c);
 }
 
 JNIEXPORT jint JNICALL
