@@ -58,7 +58,6 @@ class TerminalViewModel @Inject constructor(
     private var io: TerminalIo? = null
     private var channel: ShellChannel? = null
     private var readStdoutJob: Job? = null
-    private var readStderrJob: Job? = null
 
     private val mainHandler: Handler by lazy { Handler(Looper.getMainLooper()) }
     private val mainExecutor: (Runnable) -> Unit = { r -> mainHandler.post(r) }
@@ -97,6 +96,13 @@ class TerminalViewModel @Inject constructor(
         _session.value = session
         _state.value = TerminalState.Running
 
+        // With a PTY allocated, the remote tty merges stderr into stdout,
+        // so we only need a single reader. Running two concurrent
+        // ssh_channel_read calls (stdout + stderr) on the same session races
+        // inside libssh's internal state machine and can corrupt the
+        // channel so that subsequent ssh_channel_write calls return
+        // SSH_ERROR — observed on-device as "io.write returned -1" while
+        // output still rendered fine.
         readStdoutJob = viewModelScope.launch(Dispatchers.IO) {
             val buf = ByteArray(4096)
             while (isActive) {
@@ -112,20 +118,6 @@ class TerminalViewModel @Inject constructor(
             }
             _state.value = TerminalState.Closed
         }
-
-        readStderrJob = viewModelScope.launch(Dispatchers.IO) {
-            val buf = ByteArray(4096)
-            while (isActive) {
-                val n = try {
-                    ch.readStderr(buf)
-                } catch (_: Throwable) {
-                    break
-                }
-                if (n <= 0) break
-                val copy = buf.copyOf(n)
-                session.feedFromShell(copy, n)
-            }
-        }
     }
 
     /** Forward a layout change to both the remote pty and the local emulator. */
@@ -137,7 +129,6 @@ class TerminalViewModel @Inject constructor(
     override fun onCleared() {
         super.onCleared()
         readStdoutJob?.cancel()
-        readStderrJob?.cancel()
         _session.value?.closeChannel()
         _session.value = null
     }

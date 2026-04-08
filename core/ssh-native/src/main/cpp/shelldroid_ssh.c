@@ -483,6 +483,11 @@ Java_io_shelldroid_ssh_native_1_LibSsh_nativeChannelWrite(JNIEnv* env, jclass cl
     jbyte* buf = (*env)->GetByteArrayElements(env, data, NULL);
     int n = ssh_channel_write(c, buf + offset, (uint32_t)length);
     (*env)->ReleaseByteArrayElements(env, data, buf, JNI_ABORT);
+    if (n < 0) {
+        ssh_session s = ssh_channel_get_session(c);
+        const char* err = s ? ssh_get_error(s) : "(no session)";
+        LOGE("ssh_channel_write(len=%d) failed: rc=%d err=%s", length, n, err ? err : "(null)");
+    }
     return n;
 }
 
