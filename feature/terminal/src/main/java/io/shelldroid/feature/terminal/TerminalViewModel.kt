@@ -16,6 +16,7 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -126,8 +127,11 @@ class TerminalViewModel @Inject constructor(
                     _state.value = TerminalState.Error("read error: ${t.message}")
                     break
                 }
-                if (n == 0) continue // timeout, keep polling
-                if (n < 0) {
+                // libssh returns SSH_AGAIN (-2) when the timeout hit with
+                // no data, NOT 0 (0 means EOF). -1 is a real error. Keep
+                // polling on -2, exit on anything else <=0.
+                if (n == -2) continue
+                if (n <= 0) {
                     Log.d(TAG, "reader: read returned $n, total=$total, exiting")
                     break
                 }
@@ -168,20 +172,38 @@ class TerminalViewModel @Inject constructor(
         val job = readStdoutJob
         val session = _session.value
         _session.value = null
-        // Same ordering discipline as onCleared: stop the reader, wait for
-        // it to actually exit, then close the channel.
+        drainReaderAndClose(job, session)
+        sessionManager.disconnect(hostId)
+    }
+
+    /**
+     * Stop the reader and close the channel, bounded by a short timeout
+     * so we never hang the main thread. In the happy path the reader is
+     * polling with a 200 ms timeout, so cancel + join returns in <=200 ms.
+     * In a pathological case (session already corrupted, native read
+     * wedged), we give up after a bit and leak the channel — this avoids
+     * ANRs when the user taps Back on a broken session.
+     */
+    private fun drainReaderAndClose(job: Job?, session: SshTerminalSession?) {
         runBlocking {
-            withContext(NonCancellable) {
-                try {
-                    job?.cancel()
-                    job?.join()
-                } catch (_: Throwable) {
-                    // ignore
+            withTimeoutOrNull(600) {
+                withContext(NonCancellable) {
+                    try {
+                        job?.cancel()
+                        job?.join()
+                    } catch (_: Throwable) {
+                        // ignore
+                    }
                 }
-                session?.closeChannel()
             }
         }
-        sessionManager.disconnect(hostId)
+        // Close outside the block so it runs whether the join finished or
+        // the timeout fired. closeChannel is idempotent and cheap.
+        try {
+            session?.closeChannel()
+        } catch (_: Throwable) {
+            // ignore
+        }
     }
 
     override fun onCleared() {
@@ -190,25 +212,7 @@ class TerminalViewModel @Inject constructor(
         val job = readStdoutJob
         val session = _session.value
         _session.value = null
-        // CRITICAL: we MUST wait for the reader coroutine to actually exit
-        // before closing the libssh channel, otherwise close races with an
-        // in-flight ssh_channel_read and corrupts the session cipher state
-        // (manifests as "Packet len too high" on the next
-        // ssh_channel_open_session — i.e. the black-screen-on-reconnect bug).
-        //
-        // onCleared runs on the main thread after the nav pop, so the view
-        // is already gone; a brief blocking wait here is visually invisible.
-        runBlocking {
-            withContext(NonCancellable) {
-                try {
-                    job?.cancel()
-                    job?.join()
-                } catch (_: Throwable) {
-                    // ignore
-                }
-                session?.closeChannel()
-            }
-        }
+        drainReaderAndClose(job, session)
     }
 
     companion object { private const val TAG = "TerminalVM" }
