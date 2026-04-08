@@ -11,6 +11,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -196,13 +197,28 @@ class TerminalBridge(
     fun detach(disconnectSession: Boolean) {
         val host = hostIdCache
         hostIdCache = null
+        // Snapshot jobs/channel BEFORE launching, so the cleanup coroutine
+        // can operate on stable references even if a concurrent reattach
+        // mutates the fields.
+        val reader = readerJob
+        val writer = writerJob
+        val ch = shellChannel
+        readerJob = null
+        writerJob = null
+        shellChannel = null
         scope.launch {
             try {
-                readerJob?.cancel()
-                writerJob?.cancel()
+                // CRITICAL: wait for the reader AND writer to actually
+                // exit their native calls before closing the channel.
+                // Without this, ch.close() races with a ssh_channel_read
+                // / ssh_channel_write in progress and corrupts libssh's
+                // per-session cipher state — manifesting as
+                // "Packet len too high" on the NEXT ssh_channel_open_session
+                // the user triggers (i.e. the "Mantener" back then
+                // reconnect flow).
                 writeChannel.close()
-                val ch = shellChannel
-                shellChannel = null
+                try { reader?.cancelAndJoin() } catch (_: Throwable) {}
+                try { writer?.cancelAndJoin() } catch (_: Throwable) {}
                 try { ch?.close() } catch (_: Throwable) {}
                 _emulator.value = null
                 if (disconnectSession && host != null) {
