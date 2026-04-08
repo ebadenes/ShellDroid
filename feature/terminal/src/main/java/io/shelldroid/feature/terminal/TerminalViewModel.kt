@@ -2,6 +2,7 @@ package io.shelldroid.feature.terminal
 
 import android.os.Handler
 import android.os.Looper
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -68,21 +69,26 @@ class TerminalViewModel @Inject constructor(
      * start are ignored.
      */
     fun start(hostId: String, cols: Int, rows: Int, cellW: Int, cellH: Int) {
+        Log.d(TAG, "start(host=$hostId, ${cols}x${rows} cell=${cellW}x${cellH}) sessionAlreadySet=${_session.value != null}")
         if (_session.value != null) return
         _state.value = TerminalState.Connecting
 
         val client = sessionManager.getClient(hostId)
         if (client == null) {
+            Log.e(TAG, "getClient($hostId) returned null — no warm SSH session")
             _state.value = TerminalState.Error("no active session for host $hostId")
             return
         }
+        Log.d(TAG, "got warm LibSshClient, opening shell")
 
         val ch: ShellChannel = try {
             client.openShell(cols, rows)
         } catch (t: Throwable) {
+            Log.e(TAG, "openShell failed", t)
             _state.value = TerminalState.Error("openShell failed: ${t.message}")
             return
         }
+        Log.d(TAG, "openShell ok, starting reader")
         channel = ch
         val termIo = ShellChannelTerminalIo(ch).also { io = it }
 
@@ -105,14 +111,20 @@ class TerminalViewModel @Inject constructor(
         // output still rendered fine.
         readStdoutJob = viewModelScope.launch(Dispatchers.IO) {
             val buf = ByteArray(4096)
+            var total = 0L
             while (isActive) {
                 val n = try {
                     ch.readStdout(buf)
                 } catch (t: Throwable) {
+                    Log.e(TAG, "read error", t)
                     _state.value = TerminalState.Error("read error: ${t.message}")
                     break
                 }
-                if (n <= 0) break
+                if (n <= 0) {
+                    Log.d(TAG, "reader: read returned $n, total=$total, exiting")
+                    break
+                }
+                total += n
                 val copy = buf.copyOf(n)
                 session.feedFromShell(copy, n)
             }
@@ -137,10 +149,28 @@ class TerminalViewModel @Inject constructor(
         }
     }
 
+    /**
+     * Hard-disconnect the underlying SSH session for [hostId]. Unlike
+     * [onCleared] (which only tears down the shell channel and leaves
+     * the session warm in [SshSessionManager]), this fully disconnects
+     * from the remote server. Used when the user explicitly chooses
+     * "Disconnect" on the back dialog.
+     */
+    fun disconnectHost(hostId: String) {
+        Log.d(TAG, "disconnectHost($hostId) — tearing down warm session")
+        readStdoutJob?.cancel()
+        _session.value?.closeChannel()
+        _session.value = null
+        sessionManager.disconnect(hostId)
+    }
+
     override fun onCleared() {
+        Log.d(TAG, "onCleared — cancelling reader and closing channel")
         super.onCleared()
         readStdoutJob?.cancel()
         _session.value?.closeChannel()
         _session.value = null
     }
+
+    companion object { private const val TAG = "TerminalVM" }
 }
