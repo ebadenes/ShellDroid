@@ -36,16 +36,24 @@ set(WITH_NACL              OFF CACHE BOOL "" FORCE)
 set(WITH_GCRYPT            OFF CACHE BOOL "" FORCE)
 set(WITH_SYMBOL_VERSIONING OFF CACHE BOOL "" FORCE)
 set(BUILD_SHARED_LIBS      OFF CACHE BOOL "" FORCE)
-set(BUILD_STATIC_LIB       ON  CACHE BOOL "" FORCE)
+set(BUILD_STATIC_LIB       OFF CACHE BOOL "" FORCE)
 set(UNIT_TESTING           OFF CACHE BOOL "" FORCE)
 set(CLIENT_TESTING         OFF CACHE BOOL "" FORCE)
 set(SERVER_TESTING         OFF CACHE BOOL "" FORCE)
+
+# Neutralize install() calls in libssh subtree so its install(EXPORT ...)
+# does not complain about our mbedcrypto target not being in any export set.
+# We only consume libssh as a static archive linked into our .so.
+function(install)
+endfunction()
 
 add_subdirectory(${VENDOR}/libssh ${CMAKE_BINARY_DIR}/libssh EXCLUDE_FROM_ALL)
 
 # With BUILD_SHARED_LIBS=OFF, libssh's `add_library(ssh ...)` becomes STATIC.
 # Ensure PIC so we can link it into our SHARED .so.
 set_target_properties(ssh PROPERTIES POSITION_INDEPENDENT_CODE ON)
+# Android bionic lacks S_IWRITE (it's an MSVC/legacy alias). Alias to S_IWUSR.
+target_compile_definitions(ssh PRIVATE S_IWRITE=S_IWUSR)
 foreach(t mbedtls mbedx509 mbedcrypto)
     if(TARGET ${t})
         set_target_properties(${t} PROPERTIES POSITION_INDEPENDENT_CODE ON)
