@@ -1,8 +1,10 @@
 package io.shelldroid.feature.terminal
 
+import android.content.Context
 import android.graphics.Paint
 import android.graphics.Typeface
 import android.util.TypedValue
+import android.view.inputmethod.InputMethodManager
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -15,6 +17,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.viewinterop.AndroidView
@@ -32,13 +35,16 @@ fun TerminalScreen(
     viewModel: TerminalViewModel = hiltViewModel(),
 ) {
     val session by viewModel.session.collectAsStateWithLifecycle()
+    val title by viewModel.title.collectAsStateWithLifecycle()
+
+    LaunchedEffect(hostId) { viewModel.loadTitle(hostId) }
 
     BackHandler { onBack() }
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(hostId) },
+                title = { Text(title) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(
@@ -69,6 +75,18 @@ fun TerminalScreen(
                     // mRenderer.mFontWidth inside updateSize().
                     view.setTextSize(textSizePx.toInt())
 
+                    // Focus so the IME actually targets us.
+                    view.isFocusable = true
+                    view.isFocusableInTouchMode = true
+
+                    // Tapping the terminal should bring up the soft keyboard.
+                    // TerminalView's default onSingleTapUp does not do this on
+                    // all devices, so we trigger it explicitly.
+                    view.setOnClickListener { v ->
+                        v.requestFocus()
+                        showSoftKeyboard(ctx, v)
+                    }
+
                     // Drive start/resize from the real laid-out size. First
                     // layout with a positive extent calls start(); subsequent
                     // layouts forward to resize().
@@ -90,10 +108,17 @@ fun TerminalScreen(
                 val s = session
                 if (s != null && view.mTermSession !== s) {
                     view.attachSession(s)
+                    view.requestFocus()
+                    showSoftKeyboard(view.context, view)
                 }
             },
         )
     }
+}
+
+private fun showSoftKeyboard(ctx: Context, view: android.view.View) {
+    val imm = ctx.getSystemService(Context.INPUT_METHOD_SERVICE) as? InputMethodManager
+    imm?.showSoftInput(view, InputMethodManager.SHOW_IMPLICIT)
 }
 
 /**

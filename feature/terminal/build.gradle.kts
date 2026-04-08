@@ -22,6 +22,7 @@ android {
 dependencies {
     implementation(project(":core:ui"))
     implementation(project(":core:ssh"))
+    implementation(project(":core:db"))
     implementation(project(":terminal-emulator"))
     implementation(project(":terminal-view"))
     implementation(platform(libs.androidx.compose.bom))

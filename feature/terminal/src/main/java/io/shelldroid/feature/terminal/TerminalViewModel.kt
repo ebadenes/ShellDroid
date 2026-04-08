@@ -5,6 +5,7 @@ import android.os.Looper
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
+import io.shelldroid.core.db.dao.HostDao
 import io.shelldroid.core.ssh.ShellChannel
 import io.shelldroid.core.ssh.SshSessionManager
 import kotlinx.coroutines.Dispatchers
@@ -27,6 +28,7 @@ sealed interface TerminalState {
 @HiltViewModel
 class TerminalViewModel @Inject constructor(
     private val sessionManager: SshSessionManager,
+    private val hostDao: HostDao,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow<TerminalState>(TerminalState.Idle)
@@ -34,6 +36,16 @@ class TerminalViewModel @Inject constructor(
 
     private val _session = MutableStateFlow<SshTerminalSession?>(null)
     val session: StateFlow<SshTerminalSession?> = _session.asStateFlow()
+
+    private val _title = MutableStateFlow("Terminal")
+    val title: StateFlow<String> = _title.asStateFlow()
+
+    fun loadTitle(hostId: String) {
+        viewModelScope.launch {
+            val host = hostDao.findById(hostId) ?: return@launch
+            _title.value = host.name.ifBlank { "${host.username}@${host.hostname}" }
+        }
+    }
 
     private var io: TerminalIo? = null
     private var channel: ShellChannel? = null
