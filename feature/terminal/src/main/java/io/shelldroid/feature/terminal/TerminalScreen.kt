@@ -19,7 +19,9 @@ fun TerminalScreen(
 
     AndroidView(
         modifier = Modifier.fillMaxSize(),
-        factory = { ctx -> TerminalView(ctx, null) },
+        factory = { ctx ->
+            TerminalView(ctx, null).also { it.setTerminalViewClient(NoOpTerminalViewClient()) }
+        },
         update = { view ->
             val s = session
             if (s != null && view.mTermSession !== s) {
