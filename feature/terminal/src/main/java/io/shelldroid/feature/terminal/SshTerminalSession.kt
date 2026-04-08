@@ -6,6 +6,7 @@ import com.termux.terminal.TerminalSession
 import com.termux.terminal.TerminalSessionClient
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
 /**
@@ -46,8 +47,14 @@ class SshTerminalSession(
         val em = mEmulator
         if (em == null) {
             initializeEmulator(cols, rows, cellW, cellH)
-        } else {
-            em.resize(cols, rows, cellW, cellH)
+            return
+        }
+        em.resize(cols, rows, cellW, cellH)
+        // io.resize hits libssh via JNI and can block on a network round
+        // trip for the pty window-change packet. Never run that on the
+        // main thread — it froze the UI on screen unlock during on-device
+        // testing.
+        ioScope.launch(Dispatchers.IO) {
             try {
                 io.resize(cols, rows)
             } catch (_: Throwable) {

@@ -120,10 +120,21 @@ class TerminalViewModel @Inject constructor(
         }
     }
 
-    /** Forward a layout change to both the remote pty and the local emulator. */
+    /**
+     * Forward a layout change to the local emulator (cheap, main-thread OK)
+     * and to the remote PTY (JNI call into libssh, must NOT block main —
+     * dispatched to IO).
+     */
     fun resize(cols: Int, rows: Int, cellW: Int, cellH: Int) {
-        io?.resize(cols, rows)
         _session.value?.emulator?.resize(cols, rows, cellW, cellH)
+        val currentIo = io ?: return
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                currentIo.resize(cols, rows)
+            } catch (_: Throwable) {
+                // channel may have closed mid-resize
+            }
+        }
     }
 
     override fun onCleared() {
