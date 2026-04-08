@@ -202,6 +202,18 @@ class ShellChannel internal constructor(
         runInterruptible { LibSsh.nativeChannelRead(channelPtr, buf, 0) }
     }
 
+    /**
+     * Polling read with a timeout in milliseconds. Returns bytes read, 0 on
+     * timeout (no data yet), or negative on error/EOF. Used by the terminal
+     * reader loop so that coroutine cancellation is observed cooperatively
+     * and we never close the channel from a different thread while a read
+     * is in flight — which corrupts the libssh session cipher state and
+     * makes the next ssh_channel_open_session return garbage.
+     */
+    suspend fun readStdoutTimeout(buf: ByteArray, timeoutMs: Int): Int = withContext(Dispatchers.IO) {
+        LibSsh.nativeChannelReadTimeout(channelPtr, buf, 0, timeoutMs)
+    }
+
     /** Read up to `buf.size` bytes from stderr. */
     suspend fun readStderr(buf: ByteArray): Int = withContext(Dispatchers.IO) {
         runInterruptible { LibSsh.nativeChannelRead(channelPtr, buf, 1) }

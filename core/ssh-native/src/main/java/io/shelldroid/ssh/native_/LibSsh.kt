@@ -50,6 +50,7 @@ object LibSsh {
     @JvmStatic external fun nativeChangePtySize(channelPtr: Long, cols: Int, rows: Int): Int
     @JvmStatic external fun nativeShell(channelPtr: Long): Int
     @JvmStatic external fun nativeChannelRead(channelPtr: Long, buffer: ByteArray, isStderr: Int): Int
+    @JvmStatic external fun nativeChannelReadTimeout(channelPtr: Long, buffer: ByteArray, isStderr: Int, timeoutMs: Int): Int
     @JvmStatic external fun nativeChannelWrite(channelPtr: Long, data: ByteArray, offset: Int, length: Int): Int
     @JvmStatic external fun nativeChannelClose(channelPtr: Long)
     @JvmStatic external fun nativeChannelFree(channelPtr: Long)

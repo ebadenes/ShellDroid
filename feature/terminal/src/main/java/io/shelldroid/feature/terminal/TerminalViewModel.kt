@@ -13,6 +13,9 @@ import io.shelldroid.feature.terminal.skin.TerminalSkin
 import io.shelldroid.feature.terminal.skin.TerminalSkinRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.NonCancellable
+import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -112,15 +115,19 @@ class TerminalViewModel @Inject constructor(
         readStdoutJob = viewModelScope.launch(Dispatchers.IO) {
             val buf = ByteArray(4096)
             var total = 0L
+            // Polling read so that cancellation is cooperative. 200 ms is
+            // short enough to feel snappy on back-out but long enough that
+            // we are not burning CPU when idle. On timeout we just loop.
             while (isActive) {
                 val n = try {
-                    ch.readStdout(buf)
+                    ch.readStdoutTimeout(buf, 200)
                 } catch (t: Throwable) {
                     Log.e(TAG, "read error", t)
                     _state.value = TerminalState.Error("read error: ${t.message}")
                     break
                 }
-                if (n <= 0) {
+                if (n == 0) continue // timeout, keep polling
+                if (n < 0) {
                     Log.d(TAG, "reader: read returned $n, total=$total, exiting")
                     break
                 }
@@ -158,18 +165,50 @@ class TerminalViewModel @Inject constructor(
      */
     fun disconnectHost(hostId: String) {
         Log.d(TAG, "disconnectHost($hostId) — tearing down warm session")
-        readStdoutJob?.cancel()
-        _session.value?.closeChannel()
+        val job = readStdoutJob
+        val session = _session.value
         _session.value = null
+        // Same ordering discipline as onCleared: stop the reader, wait for
+        // it to actually exit, then close the channel.
+        runBlocking {
+            withContext(NonCancellable) {
+                try {
+                    job?.cancel()
+                    job?.join()
+                } catch (_: Throwable) {
+                    // ignore
+                }
+                session?.closeChannel()
+            }
+        }
         sessionManager.disconnect(hostId)
     }
 
     override fun onCleared() {
         Log.d(TAG, "onCleared — cancelling reader and closing channel")
         super.onCleared()
-        readStdoutJob?.cancel()
-        _session.value?.closeChannel()
+        val job = readStdoutJob
+        val session = _session.value
         _session.value = null
+        // CRITICAL: we MUST wait for the reader coroutine to actually exit
+        // before closing the libssh channel, otherwise close races with an
+        // in-flight ssh_channel_read and corrupts the session cipher state
+        // (manifests as "Packet len too high" on the next
+        // ssh_channel_open_session — i.e. the black-screen-on-reconnect bug).
+        //
+        // onCleared runs on the main thread after the nav pop, so the view
+        // is already gone; a brief blocking wait here is visually invisible.
+        runBlocking {
+            withContext(NonCancellable) {
+                try {
+                    job?.cancel()
+                    job?.join()
+                } catch (_: Throwable) {
+                    // ignore
+                }
+                session?.closeChannel()
+            }
+        }
     }
 
     companion object { private const val TAG = "TerminalVM" }

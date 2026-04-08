@@ -474,6 +474,27 @@ Java_io_shelldroid_ssh_native_1_LibSsh_nativeChannelRead(JNIEnv* env, jclass cla
     return n;
 }
 
+/*
+ * Polling read with a timeout in milliseconds. Returns the number of bytes
+ * read, 0 on timeout, or negative on error/EOF. Using this from the Kotlin
+ * reader loop lets it observe coroutine cancellation without having to
+ * close the channel from another thread mid-read (which corrupts libssh's
+ * per-session cipher state and makes subsequent ssh_channel_open_session
+ * return garbage packet lengths).
+ */
+JNIEXPORT jint JNICALL
+Java_io_shelldroid_ssh_native_1_LibSsh_nativeChannelReadTimeout(JNIEnv* env, jclass clazz,
+        jlong channelPtr, jbyteArray buffer, jint isStderr, jint timeoutMs) {
+    (void)clazz;
+    ssh_channel c = (ssh_channel)(intptr_t)channelPtr;
+    if (!c || !buffer) return SSH_ERROR;
+    jsize cap = (*env)->GetArrayLength(env, buffer);
+    jbyte* buf = (*env)->GetByteArrayElements(env, buffer, NULL);
+    int n = ssh_channel_read_timeout(c, buf, (uint32_t)cap, isStderr ? 1 : 0, timeoutMs);
+    (*env)->ReleaseByteArrayElements(env, buffer, buf, 0);
+    return n;
+}
+
 JNIEXPORT jint JNICALL
 Java_io_shelldroid_ssh_native_1_LibSsh_nativeChannelWrite(JNIEnv* env, jclass clazz,
         jlong channelPtr, jbyteArray data, jint offset, jint length) {
