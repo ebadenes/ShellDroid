@@ -1,5 +1,6 @@
 package io.shelldroid.feature.terminal
 
+import android.util.Log
 import com.termux.terminal.TerminalEmulator
 import com.termux.terminal.TerminalSession
 import com.termux.terminal.TerminalSessionClient
@@ -63,18 +64,16 @@ class SshTerminalSession(
 
     override fun write(data: ByteArray?, offset: Int, count: Int) {
         if (data == null || count <= 0) return
+        Log.d("SshTermSess", "write(len=$count) first=${data[offset].toInt() and 0xff}")
         val copy = data.copyOfRange(offset, offset + count)
-        // io.write is already a suspend fn that does withContext(Dispatchers.IO)
-        // internally for the native libssh call, so launching on ioScope's
-        // default dispatcher (Main in prod, the test scheduler in tests) is
-        // fine — the actual blocking work is dispatched by ShellChannel.
         ioScope.launch {
             try {
-                io.write(copy, 0, copy.size)
+                val n = io.write(copy, 0, copy.size)
+                Log.d("SshTermSess", "io.write returned $n")
             } catch (_: CancellationException) {
                 // scope cancelled
-            } catch (_: Throwable) {
-                // channel may be closed mid-write — ignore
+            } catch (t: Throwable) {
+                Log.e("SshTermSess", "io.write failed", t)
             }
         }
     }

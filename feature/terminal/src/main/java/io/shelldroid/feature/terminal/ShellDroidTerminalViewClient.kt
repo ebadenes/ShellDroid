@@ -1,5 +1,6 @@
 package io.shelldroid.feature.terminal
 
+import android.util.Log
 import android.view.KeyEvent
 import android.view.MotionEvent
 import com.termux.terminal.TerminalSession
@@ -45,7 +46,10 @@ class ShellDroidTerminalViewClient(
 
     override fun copyModeChanged(copyMode: Boolean) { /* no-op */ }
 
-    override fun onKeyDown(keyCode: Int, e: KeyEvent, session: TerminalSession): Boolean = false
+    override fun onKeyDown(keyCode: Int, e: KeyEvent, session: TerminalSession): Boolean {
+        Log.d("ShellTVC", "onKeyDown keyCode=$keyCode unicode=${e.unicodeChar}")
+        return false
+    }
     override fun onKeyUp(keyCode: Int, e: KeyEvent): Boolean = false
     override fun onLongPress(event: MotionEvent): Boolean = false
 
@@ -69,7 +73,10 @@ class ShellDroidTerminalViewClient(
     override fun readShiftKey(): Boolean = false
     override fun readFnKey(): Boolean = false
 
-    override fun onCodePoint(codePoint: Int, ctrlDown: Boolean, session: TerminalSession): Boolean = false
+    override fun onCodePoint(codePoint: Int, ctrlDown: Boolean, session: TerminalSession): Boolean {
+        Log.d("ShellTVC", "onCodePoint cp=$codePoint ctrlDown=$ctrlDown")
+        return false
+    }
 
     override fun onEmulatorSet() { /* no-op */ }
 

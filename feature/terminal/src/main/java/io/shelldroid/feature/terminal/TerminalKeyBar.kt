@@ -92,8 +92,8 @@ fun TerminalKeyBar(
             .fillMaxWidth()
             .background(background)
             .horizontalScroll(scroll)
-            .padding(horizontal = 4.dp, vertical = 6.dp),
-        horizontalArrangement = Arrangement.spacedBy(4.dp),
+            .padding(horizontal = 3.dp, vertical = 3.dp),
+        horizontalArrangement = Arrangement.spacedBy(3.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         DEFAULT_KEYS.forEach { key ->
@@ -123,21 +123,21 @@ private fun KeyBarButton(
     val fg = if (active) foreground else foreground.copy(alpha = 0.85f)
     Box(
         modifier = Modifier
-            .height(36.dp)
-            .clip(RoundedCornerShape(6.dp))
+            .height(28.dp)
+            .clip(RoundedCornerShape(4.dp))
             .background(bg)
             .pointerInput(onClick) {
                 awaitEachGesture(onClick)
             }
-            .padding(horizontal = 10.dp),
+            .padding(horizontal = 7.dp),
         contentAlignment = Alignment.Center,
     ) {
         Text(
             text = label,
             color = fg,
-            fontSize = 13.sp,
+            fontSize = 11.sp,
             fontWeight = FontWeight.SemiBold,
-            style = MaterialTheme.typography.labelMedium,
+            style = MaterialTheme.typography.labelSmall,
         )
     }
 }
