@@ -92,6 +92,7 @@ fun TerminalScreen(
     }
 
     Scaffold(
+        containerColor = Color(skin.background),
         topBar = {
             TopAppBar(
                 title = { Text(title) },
