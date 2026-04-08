@@ -17,13 +17,9 @@
 .DS_Store
 Thumbs.db
 
-# Reference material (large, kept locally only)
-JuiceSSH.apk
-decompiled/
-ShellDroid_Especificacion_MVP.docx
-# Original docs in repo root (not under any package — won't match ShellDroidApp.kt etc)
-/ShellDroid_*.md
-/ShellDroid_*.docx
+# Reference material, session docs, decompiled APKs, example projects.
+# Everything here is local-only — the 'internal/' directory is never pushed.
+/internal/
 
 # Gradle
 .gradle/
