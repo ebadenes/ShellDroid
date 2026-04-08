@@ -8,11 +8,15 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import io.shelldroid.core.db.dao.HostDao
 import io.shelldroid.core.ssh.ShellChannel
 import io.shelldroid.core.ssh.SshSessionManager
+import io.shelldroid.feature.terminal.skin.TerminalSkin
+import io.shelldroid.feature.terminal.skin.TerminalSkinRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -29,7 +33,11 @@ sealed interface TerminalState {
 class TerminalViewModel @Inject constructor(
     private val sessionManager: SshSessionManager,
     private val hostDao: HostDao,
+    skinRepository: TerminalSkinRepository,
 ) : ViewModel() {
+
+    val skin: StateFlow<TerminalSkin> = skinRepository.selected
+        .stateIn(viewModelScope, SharingStarted.Eagerly, skinRepository.current())
 
     private val _state = MutableStateFlow<TerminalState>(TerminalState.Idle)
     val state: StateFlow<TerminalState> = _state.asStateFlow()

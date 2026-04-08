@@ -23,9 +23,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.termux.terminal.TextStyle
 import com.termux.view.TerminalView
-
-private const val TERMINAL_TEXT_SIZE_SP = 14f
+import io.shelldroid.feature.terminal.skin.TerminalSkin
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -36,6 +36,7 @@ fun TerminalScreen(
 ) {
     val session by viewModel.session.collectAsStateWithLifecycle()
     val title by viewModel.title.collectAsStateWithLifecycle()
+    val skin by viewModel.skin.collectAsStateWithLifecycle()
 
     LaunchedEffect(hostId) { viewModel.loadTitle(hostId) }
 
@@ -63,33 +64,23 @@ fun TerminalScreen(
             factory = { ctx ->
                 val textSizePx = TypedValue.applyDimension(
                     TypedValue.COMPLEX_UNIT_SP,
-                    TERMINAL_TEXT_SIZE_SP,
+                    skin.textSizeSp,
                     ctx.resources.displayMetrics,
                 )
                 val (cellW, cellH) = measureMonoCell(textSizePx)
 
                 TerminalView(ctx, null).also { view ->
                     view.setTerminalViewClient(NoOpTerminalViewClient())
-                    // TerminalView allocates its TerminalRenderer inside
-                    // setTextSize(). Without this, attachSession() NPEs on
-                    // mRenderer.mFontWidth inside updateSize().
                     view.setTextSize(textSizePx.toInt())
+                    view.setBackgroundColor(skin.background)
 
-                    // Focus so the IME actually targets us.
                     view.isFocusable = true
                     view.isFocusableInTouchMode = true
-
-                    // Tapping the terminal should bring up the soft keyboard.
-                    // TerminalView's default onSingleTapUp does not do this on
-                    // all devices, so we trigger it explicitly.
                     view.setOnClickListener { v ->
                         v.requestFocus()
                         showSoftKeyboard(ctx, v)
                     }
 
-                    // Drive start/resize from the real laid-out size. First
-                    // layout with a positive extent calls start(); subsequent
-                    // layouts forward to resize().
                     view.addOnLayoutChangeListener { v, l, t, r, b, _, _, _, _ ->
                         val w = r - l
                         val h = b - t
@@ -105,15 +96,34 @@ fun TerminalScreen(
                 }
             },
             update = { view ->
+                // Keep the Android view background in sync if the user changes
+                // skins at runtime.
+                view.setBackgroundColor(skin.background)
                 val s = session
                 if (s != null && view.mTermSession !== s) {
                     view.attachSession(s)
+                    applySkinToEmulator(s, skin)
                     view.requestFocus()
                     showSoftKeyboard(view.context, view)
+                } else if (s != null) {
+                    // Re-apply palette in case the skin flow emitted a new
+                    // value after the session was already attached.
+                    applySkinToEmulator(s, skin)
                 }
             },
         )
     }
+}
+
+private fun applySkinToEmulator(session: SshTerminalSession, skin: TerminalSkin) {
+    val em = session.emulator ?: return
+    val colors = em.mColors.mCurrentColors
+    // ANSI 0..15
+    for (i in 0 until 16) colors[i] = skin.ansi[i]
+    // Special indices
+    colors[TextStyle.COLOR_INDEX_FOREGROUND] = skin.foreground
+    colors[TextStyle.COLOR_INDEX_BACKGROUND] = skin.background
+    colors[TextStyle.COLOR_INDEX_CURSOR] = skin.cursor
 }
 
 private fun showSoftKeyboard(ctx: Context, view: android.view.View) {
