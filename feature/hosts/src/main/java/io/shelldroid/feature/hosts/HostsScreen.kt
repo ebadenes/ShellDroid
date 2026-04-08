@@ -14,7 +14,9 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.SwapHoriz
 import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -45,6 +47,8 @@ fun HostsScreen(
     onAddHost: () -> Unit = {},
     onEditHost: (String) -> Unit = {},
     onOpenIdentities: () -> Unit = {},
+    onOpenSnippets: () -> Unit = {},
+    onOpenPortForwards: () -> Unit = {},
     prompter: ComposeHostKeyPrompter? = null,
     viewModel: HostsListViewModel = hiltViewModel(),
 ) {
@@ -71,6 +75,12 @@ fun HostsScreen(
             TopAppBar(
                 title = { Text("Hosts") },
                 actions = {
+                    IconButton(onClick = onOpenSnippets) {
+                        Icon(Icons.AutoMirrored.Filled.List, contentDescription = "Snippets")
+                    }
+                    IconButton(onClick = onOpenPortForwards) {
+                        Icon(Icons.Default.SwapHoriz, contentDescription = "Port forwards")
+                    }
                     IconButton(onClick = onOpenIdentities) {
                         Icon(Icons.Default.Person, contentDescription = "Identities")
                     }

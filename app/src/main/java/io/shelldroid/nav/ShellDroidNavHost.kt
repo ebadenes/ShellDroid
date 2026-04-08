@@ -23,6 +23,8 @@ import io.shelldroid.feature.hosts.HostsScreen
 import io.shelldroid.feature.hosts.tofu.ComposeHostKeyPrompter
 import io.shelldroid.feature.identities.IdentitiesScreen
 import io.shelldroid.feature.identities.IdentityEditScreen
+import io.shelldroid.feature.snippets.SnippetEditScreen
+import io.shelldroid.feature.snippets.SnippetsScreen
 import io.shelldroid.feature.terminal.TerminalScreen
 
 object Routes {
@@ -36,6 +38,10 @@ object Routes {
 
     const val TERMINAL = "terminal/{hostId}"
     fun terminal(hostId: String): String = "terminal/$hostId"
+
+    const val SNIPPETS = "snippets"
+    const val SNIPPET_EDIT = "snippet/edit?id={id}"
+    fun snippetEdit(id: String? = null): String = "snippet/edit?id=${id.orEmpty()}"
 }
 
 @EntryPoint
@@ -76,8 +82,34 @@ fun ShellDroidNavHost(navController: NavHostController = rememberNavController()
                 onAddHost = { navController.navigate(Routes.hostEdit()) },
                 onEditHost = { id -> navController.navigate(Routes.hostEdit(id)) },
                 onOpenIdentities = { navController.navigate(Routes.IDENTITIES) },
+                onOpenSnippets = { navController.navigate(Routes.SNIPPETS) },
                 prompter = null, // mounted at NavHost level
                 viewModel = vm,
+            )
+        }
+        composable(Routes.SNIPPETS) {
+            SnippetsScreen(
+                onAddSnippet = { navController.navigate(Routes.snippetEdit()) },
+                onEditSnippet = { id -> navController.navigate(Routes.snippetEdit(id)) },
+                onRunSnippet = { /* TODO wire to terminal */ },
+                onBack = { navController.popBackStack() },
+            )
+        }
+        composable(
+            route = Routes.SNIPPET_EDIT,
+            arguments = listOf(
+                navArgument("id") {
+                    type = NavType.StringType
+                    nullable = true
+                    defaultValue = null
+                },
+            ),
+        ) { backStack ->
+            val id = backStack.arguments?.getString("id")?.takeIf { it.isNotEmpty() }
+            SnippetEditScreen(
+                snippetId = id,
+                onDone = { navController.popBackStack() },
+                onBack = { navController.popBackStack() },
             )
         }
         composable(
