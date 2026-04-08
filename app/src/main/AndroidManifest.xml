@@ -1,6 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+
     <application
         android:name=".ShellDroidApp"
         android:label="ShellDroid"
@@ -16,5 +21,21 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <!--
+          Foreground service que mantiene vivas las sesiones SSH mientras la
+          app está en background. Tipo specialUse: las sesiones interactivas
+          de usuario no encajan en dataSync/connectedDevice. Si Play rechaza
+          este subtype, fallback a "dataSync".
+          TODO: alternativa dataSync si Play rechaza
+        -->
+        <service
+            android:name="io.shelldroid.service.session.SshSessionService"
+            android:exported="false"
+            android:foregroundServiceType="specialUse">
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="ssh_session_keepalive" />
+        </service>
     </application>
 </manifest>

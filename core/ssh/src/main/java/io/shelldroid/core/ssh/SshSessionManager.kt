@@ -1,6 +1,9 @@
 package io.shelldroid.core.ssh
 
 import io.shelldroid.core.ssh.model.SshConfig
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import java.util.concurrent.ConcurrentHashMap
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -18,12 +21,22 @@ import javax.inject.Singleton
  * lock-free, but `connect` is NOT idempotent: a second concurrent call for
  * the same `hostId` will leak the loser. Higher layers (UI ViewModels)
  * should serialize their own connect attempts per host.
+ *
+ * Foreground service hook: every successful [connect] calls
+ * [SessionServiceController.ensureRunning], and [activeCountFlow] is the
+ * source of truth that the service observes to update its notification and
+ * stop itself once the count drops to zero.
  */
 @Singleton
 class SshSessionManager @Inject constructor(
     private val verifier: TofuHostKeyVerifier,
+    private val serviceController: SessionServiceController = NoopSessionServiceController,
 ) {
     private val sessions = ConcurrentHashMap<String, LibSshClient>()
+
+    private val _activeCountFlow = MutableStateFlow(0)
+    /** Observable session count. The session service collects this. */
+    val activeCountFlow: StateFlow<Int> = _activeCountFlow.asStateFlow()
 
     suspend fun connect(config: SshConfig): Result<LibSshClient> = runCatching {
         val client = LibSshClient()
@@ -49,6 +62,8 @@ class SshSessionManager @Inject constructor(
         client.authenticate(config.auth, config.username).getOrThrow()
 
         sessions.put(config.hostId, client)?.disconnect()  // close any stale entry
+        _activeCountFlow.value = sessions.size
+        serviceController.ensureRunning()
         client
     }
 
@@ -56,11 +71,13 @@ class SshSessionManager @Inject constructor(
 
     fun disconnect(hostId: String) {
         sessions.remove(hostId)?.disconnect()
+        _activeCountFlow.value = sessions.size
     }
 
     fun disconnectAll() {
         val snapshot = sessions.values.toList()
         sessions.clear()
+        _activeCountFlow.value = 0
         snapshot.forEach { it.disconnect() }
     }
 
