@@ -1,10 +1,15 @@
 package io.shelldroid.feature.terminal
 
+import android.content.Context
 import android.graphics.Typeface
+import android.view.inputmethod.InputMethodManager
 import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.layout.imeAnimationTarget
 import androidx.compose.foundation.layout.padding
@@ -21,7 +26,6 @@ import androidx.compose.material3.ScaffoldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -31,30 +35,15 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import org.connectbot.terminal.Terminal
 
-/**
- * Terminal screen built on ConnectBot's termlib.
- *
- * IME integration follows ConnectBot's ConsoleScreen pattern exactly:
- *
- *  - Scaffold's contentWindowInsets unions the IME animation target so
- *    the content area reports the correct height during the IME open /
- *    close animation (not just the end state).
- *  - The content box `.consumeWindowInsets(innerPadding)
- *    .windowInsetsPadding(WindowInsets.imeAnimationTarget)` so the
- *    Terminal shrinks above the IME.
- *  - The actual system IME visibility is read from `WindowInsets.ime`
- *    and mirrored into our `showSoftKeyboard` state: when the user
- *    dismisses the IME externally (back button, swipe), our state
- *    follows. Tap on the Terminal sets our state to `true` and termlib
- *    re-shows the IME.
- */
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun TerminalScreen(
@@ -69,25 +58,24 @@ fun TerminalScreen(
     val focusRequester = remember { FocusRequester() }
     val modifierManager = remember { ShellDroidModifierManager() }
 
-    // Our request state ("do we want the IME visible?"). Initially true
-    // so the keyboard comes up right after the shell is attached.
+    val context = LocalContext.current
+    val view = LocalView.current
+    val imm = remember(context) {
+        context.getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
+    }
+
+    // "Our intent" state. We do NOT auto-sync this from system IME
+    // visibility — that caused a feedback loop where hiding the IME
+    // locked us out of being able to bring it back. Instead we drive
+    // the InputMethodManager directly on tap / keybar ⌨.
     var showSoftKeyboard by remember { mutableStateOf(true) }
 
-    // Actual system IME visibility, derived from WindowInsets.ime. Used to
-    // detect external dismissal (back button, swipe down) so we can sync
-    // our request state — otherwise termlib would think we still want the
-    // keyboard visible and re-show it.
+    // Observe system IME visibility only to know the CURRENT state, not
+    // to override our intent. Used for the onTerminalTap logic.
     val density = LocalDensity.current
     val imeInsets = WindowInsets.ime
-    val imeBottomDp = with(density) { imeInsets.getBottom(density).toDp() }
-    val systemImeVisible = imeBottomDp > 0.dp
-    var hasImeBeenVisible by remember { mutableStateOf(false) }
-    LaunchedEffect(systemImeVisible) {
-        if (systemImeVisible) hasImeBeenVisible = true
-        if (hasImeBeenVisible && !systemImeVisible && showSoftKeyboard) {
-            showSoftKeyboard = false
-        }
-    }
+    val imeBottom = imeInsets.getBottom(density)
+    val systemImeVisible = imeBottom > 0
 
     var showBackDialog by remember { mutableStateOf(false) }
 
@@ -129,6 +117,12 @@ fun TerminalScreen(
         )
     }
 
+    fun forceShowKeyboard() {
+        showSoftKeyboard = true
+        focusRequester.requestFocus()
+        imm.showSoftInput(view, InputMethodManager.SHOW_IMPLICIT)
+    }
+
     Scaffold(
         containerColor = Color(skin.background),
         contentWindowInsets = ScaffoldDefaults.contentWindowInsets
@@ -148,37 +142,48 @@ fun TerminalScreen(
         },
     ) { inner ->
         val em = emulator
-        if (em != null) {
-            Terminal(
-                terminalEmulator = em,
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(inner)
-                    .consumeWindowInsets(inner)
-                    .windowInsetsPadding(WindowInsets.imeAnimationTarget),
-                typeface = Typeface.MONOSPACE,
-                initialFontSize = skin.textSizeSp.sp,
-                keyboardEnabled = true,
-                showSoftKeyboard = showSoftKeyboard,
-                focusRequester = focusRequester,
-                forcedSize = null,
-                modifierManager = modifierManager,
-                onSelectionControllerAvailable = { /* no-op for now */ },
-                onTerminalTap = {
-                    // User tapped the terminal. If the IME is hidden, ask
-                    // termlib to show it again; otherwise leave it alone.
-                    if (!systemImeVisible) {
-                        showSoftKeyboard = true
-                        focusRequester.requestFocus()
-                    }
-                },
-                onImeVisibilityChanged = { visible ->
-                    // termlib's own callback; we let WindowInsets.ime be
-                    // the source of truth via the LaunchedEffect above.
-                    if (visible) showSoftKeyboard = true
-                },
-                onHyperlinkClick = { /* TODO: launch in browser */ },
-            )
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(inner)
+                .consumeWindowInsets(inner)
+                .windowInsetsPadding(WindowInsets.imeAnimationTarget),
+        ) {
+            if (em != null) {
+                Terminal(
+                    terminalEmulator = em,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f),
+                    typeface = Typeface.MONOSPACE,
+                    initialFontSize = skin.textSizeSp.sp,
+                    keyboardEnabled = true,
+                    showSoftKeyboard = showSoftKeyboard,
+                    focusRequester = focusRequester,
+                    forcedSize = null,
+                    modifierManager = modifierManager,
+                    onSelectionControllerAvailable = { /* no-op */ },
+                    onTerminalTap = {
+                        // Always try to show the keyboard on tap. Safe
+                        // idempotent call to IMM.
+                        forceShowKeyboard()
+                    },
+                    onImeVisibilityChanged = { visible ->
+                        if (visible) showSoftKeyboard = true
+                        // Do not mirror visible=false back — that was the
+                        // feedback loop that prevented recovery.
+                    },
+                    onHyperlinkClick = { /* TODO */ },
+                )
+
+                TerminalKeyBar(
+                    emulator = em,
+                    modifierManager = modifierManager,
+                    background = Color(skin.background),
+                    foreground = Color(skin.foreground),
+                    onRequestShowKeyboard = { forceShowKeyboard() },
+                )
+            }
         }
     }
 }
