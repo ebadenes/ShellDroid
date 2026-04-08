@@ -21,7 +21,9 @@ Thumbs.db
 JuiceSSH.apk
 decompiled/
 ShellDroid_Especificacion_MVP.docx
-ShellDroid*
+# Original docs in repo root (not under any package — won't match ShellDroidApp.kt etc)
+/ShellDroid_*.md
+/ShellDroid_*.docx
 
 # Gradle
 .gradle/
