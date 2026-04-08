@@ -41,6 +41,8 @@ mockk = "1.13.13"
 turbine = "1.2.0"
 truth = "1.4.4"
 testcontainers = "1.20.4"
+apacheSshdCore = "2.14.0"
+jsch = "0.2.17"
 androidxJunit = "1.2.1"
 androidxEspresso = "3.6.1"
 
@@ -96,6 +98,9 @@ mockk-android = { group = "io.mockk", name = "mockk-android", version.ref = "moc
 turbine = { group = "app.cash.turbine", name = "turbine", version.ref = "turbine" }
 truth = { group = "com.google.truth", name = "truth", version.ref = "truth" }
 testcontainers = { group = "org.testcontainers", name = "testcontainers", version.ref = "testcontainers" }
+apache-sshd-core = { group = "org.apache.sshd", name = "sshd-core", version.ref = "apacheSshdCore" }
+apache-sshd-scp = { group = "org.apache.sshd", name = "sshd-scp", version.ref = "apacheSshdCore" }
+jsch = { group = "com.github.mwiede", name = "jsch", version.ref = "jsch" }
 kotlinx-coroutines-test = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-test", version.ref = "coroutines" }
 androidx-junit = { group = "androidx.test.ext", name = "junit", version.ref = "androidxJunit" }
 androidx-espresso-core = { group = "androidx.test.espresso", name = "espresso-core", version.ref = "androidxEspresso" }
