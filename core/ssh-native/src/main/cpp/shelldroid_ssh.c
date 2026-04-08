@@ -9,6 +9,28 @@ extern int ssh_pki_export_pubkey_blob(const ssh_key key, ssh_string *pblob);
 extern int ssh_pki_import_pubkey_blob(const ssh_string key_blob, ssh_key *pkey);
 
 /* ------------------------------------------------------------------
+ * JNI_OnLoad — called once when System.loadLibrary() completes.
+ *
+ * libssh 0.11 requires an explicit ssh_init() before any other API call.
+ * With the mbedTLS backend this is where ssh_crypto_init() runs and
+ * seeds the global CTR_DRBG context with entropy. Skipping it leaves
+ * ctr_drbg->f_entropy == NULL and the first KEX dereferences a null
+ * function pointer deep inside mbedtls_ctr_drbg_reseed_internal.
+ * ------------------------------------------------------------------ */
+JNIEXPORT jint JNICALL
+JNI_OnLoad(JavaVM* vm, void* reserved) {
+    (void)vm; (void)reserved;
+    ssh_init();
+    return JNI_VERSION_1_6;
+}
+
+JNIEXPORT void JNICALL
+JNI_OnUnload(JavaVM* vm, void* reserved) {
+    (void)vm; (void)reserved;
+    ssh_finalize();
+}
+
+/* ------------------------------------------------------------------
  * helpers
  * ------------------------------------------------------------------ */
 static void zeroize(void* p, size_t n) {
