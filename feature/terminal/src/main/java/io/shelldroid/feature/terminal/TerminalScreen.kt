@@ -1,9 +1,13 @@
 package io.shelldroid.feature.terminal
 
-import android.content.Context
+import android.app.Activity
 import android.graphics.Typeface
-import android.view.inputmethod.InputMethodManager
+import android.view.KeyEvent
 import androidx.activity.compose.BackHandler
+import androidx.compose.runtime.DisposableEffect
+import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.WindowInsetsControllerCompat
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.WindowInsets
@@ -60,15 +64,42 @@ fun TerminalScreen(
 
     val context = LocalContext.current
     val view = LocalView.current
-    val imm = remember(context) {
-        context.getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
+    // WindowInsetsControllerCompat.show(ime()) is the modern, reliable
+    // way to show the keyboard at the window level, not bound to a
+    // specific target View like InputMethodManager.showSoftInput is.
+    val insetsController: WindowInsetsControllerCompat? = remember(context, view) {
+        val activity = context as? Activity ?: return@remember null
+        WindowCompat.getInsetsController(activity.window, view)
     }
 
     // "Our intent" state. We do NOT auto-sync this from system IME
     // visibility — that caused a feedback loop where hiding the IME
-    // locked us out of being able to bring it back. Instead we drive
-    // the InputMethodManager directly on tap / keybar ⌨.
+    // locked us out of being able to bring it back.
     var showSoftKeyboard by remember { mutableStateOf(true) }
+
+    // Dynamic font size so the volume keys can zoom in/out without
+    // reopening the terminal. Initial value comes from the skin.
+    var fontSizeSp by remember(skin.textSizeSp) { mutableStateOf(skin.textSizeSp) }
+
+    // Install a hardware key interceptor while this screen is on screen.
+    // Volume Up  -> zoom in (+1 sp, capped at 36)
+    // Volume Down -> zoom out (-1 sp, floor 6)
+    DisposableEffect(Unit) {
+        HardwareKeyInterceptor.handler = { keyCode, _ ->
+            when (keyCode) {
+                KeyEvent.KEYCODE_VOLUME_UP -> {
+                    fontSizeSp = (fontSizeSp + 1f).coerceAtMost(36f)
+                    true
+                }
+                KeyEvent.KEYCODE_VOLUME_DOWN -> {
+                    fontSizeSp = (fontSizeSp - 1f).coerceAtLeast(6f)
+                    true
+                }
+                else -> false
+            }
+        }
+        onDispose { HardwareKeyInterceptor.handler = null }
+    }
 
     // Observe system IME visibility only to know the CURRENT state, not
     // to override our intent. Used for the onTerminalTap logic.
@@ -119,8 +150,12 @@ fun TerminalScreen(
 
     fun forceShowKeyboard() {
         showSoftKeyboard = true
-        focusRequester.requestFocus()
-        imm.showSoftInput(view, InputMethodManager.SHOW_IMPLICIT)
+        try {
+            focusRequester.requestFocus()
+        } catch (_: Throwable) {
+            // focus may not be attached yet; fine
+        }
+        insetsController?.show(WindowInsetsCompat.Type.ime())
     }
 
     Scaffold(
@@ -156,7 +191,7 @@ fun TerminalScreen(
                         .fillMaxWidth()
                         .weight(1f),
                     typeface = Typeface.MONOSPACE,
-                    initialFontSize = skin.textSizeSp.sp,
+                    initialFontSize = fontSizeSp.sp,
                     keyboardEnabled = true,
                     showSoftKeyboard = showSoftKeyboard,
                     focusRequester = focusRequester,
