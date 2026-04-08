@@ -34,6 +34,27 @@ class SshTerminalSession(
         mShellPid = 1
     }
 
+    /**
+     * Override the parent's [updateSize] to avoid its `JNI.setPtyWindowSize`
+     * call, which triggers loading of `libtermux.so` (we exclude it from the
+     * APK and never spawn a local pty anyway). We resize the emulator in
+     * place and forward the new window dimensions to the remote via the
+     * shell channel.
+     */
+    override fun updateSize(cols: Int, rows: Int, cellW: Int, cellH: Int) {
+        val em = mEmulator
+        if (em == null) {
+            initializeEmulator(cols, rows, cellW, cellH)
+        } else {
+            em.resize(cols, rows, cellW, cellH)
+            try {
+                io.resize(cols, rows)
+            } catch (_: Throwable) {
+                // channel may be closed mid-resize — ignore
+            }
+        }
+    }
+
     override fun write(data: ByteArray?, offset: Int, count: Int) {
         if (data == null || count <= 0) return
         val copy = data.copyOfRange(offset, offset + count)
