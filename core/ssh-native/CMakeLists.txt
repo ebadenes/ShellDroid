@@ -80,5 +80,7 @@ target_link_libraries(shelldroid_ssh PRIVATE
 )
 
 # Pull in all libssh symbols (so nm shows them in the final .so for sanity).
+# Also force 16 KB page alignment (Android 15+ requirement).
 target_link_options(shelldroid_ssh PRIVATE
-    "-Wl,--whole-archive" "$<TARGET_FILE:ssh>" "-Wl,--no-whole-archive")
+    "-Wl,--whole-archive" "$<TARGET_FILE:ssh>" "-Wl,--no-whole-archive"
+    "-Wl,-z,max-page-size=16384")

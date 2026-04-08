@@ -16,10 +16,23 @@ android {
         targetSdk = libs.versions.targetSdk.get().toInt()
         versionCode = 1
         versionName = "0.1.0-alpha"
+        ndk {
+            // Align with :core:ssh-native. We only ship 64-bit.
+            abiFilters += listOf("arm64-v8a", "x86_64")
+        }
     }
 
     buildFeatures {
         compose = true
+    }
+
+    packaging {
+        jniLibs {
+            // libtermux.so is Termux's createSubprocess JNI; we override
+            // initializeEmulator and never spawn a local process, so the
+            // native lib is dead weight — and it's not 16 KB aligned.
+            excludes += "**/libtermux.so"
+        }
     }
 
     compileOptions {
