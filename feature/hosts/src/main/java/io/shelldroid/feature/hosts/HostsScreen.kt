@@ -14,6 +14,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -43,6 +44,7 @@ import io.shelldroid.feature.hosts.tofu.ComposeHostKeyPrompter
 fun HostsScreen(
     onAddHost: () -> Unit = {},
     onEditHost: (String) -> Unit = {},
+    onOpenIdentities: () -> Unit = {},
     prompter: ComposeHostKeyPrompter? = null,
     viewModel: HostsListViewModel = hiltViewModel(),
 ) {
@@ -65,7 +67,16 @@ fun HostsScreen(
     }
 
     Scaffold(
-        topBar = { TopAppBar(title = { Text("Hosts") }) },
+        topBar = {
+            TopAppBar(
+                title = { Text("Hosts") },
+                actions = {
+                    IconButton(onClick = onOpenIdentities) {
+                        Icon(Icons.Default.Person, contentDescription = "Identities")
+                    }
+                },
+            )
+        },
         floatingActionButton = {
             FloatingActionButton(onClick = onAddHost) {
                 Icon(Icons.Default.Add, contentDescription = "Add host")
