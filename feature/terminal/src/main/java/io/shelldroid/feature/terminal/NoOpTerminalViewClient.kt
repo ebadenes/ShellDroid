@@ -22,7 +22,9 @@ class NoOpTerminalViewClient : TerminalViewClient {
     override fun onSingleTapUp(e: MotionEvent) { /* no-op */ }
 
     override fun shouldBackButtonBeMappedToEscape(): Boolean = false
-    override fun shouldEnforceCharBasedInput(): Boolean = false
+    // Force the IME into char-based mode so predictive typing / swipe input
+    // cannot batch up chars — shells need every keystroke delivered as-is.
+    override fun shouldEnforceCharBasedInput(): Boolean = true
     override fun shouldUseCtrlSpaceWorkaround(): Boolean = false
     override fun isTerminalViewSelected(): Boolean = true
 

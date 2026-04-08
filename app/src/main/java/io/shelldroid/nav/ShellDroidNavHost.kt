@@ -120,7 +120,10 @@ fun ShellDroidNavHost(navController: NavHostController = rememberNavController()
         }
         composable(Routes.TERMINAL) { backStack ->
             val hostId = backStack.arguments?.getString("hostId").orEmpty()
-            TerminalScreen(hostId = hostId)
+            TerminalScreen(
+                hostId = hostId,
+                onBack = { navController.popBackStack() },
+            )
         }
     }
 }
