@@ -1,37 +1,39 @@
 [versions]
-# Build tooling — REAL versions known to coexist (late 2024 baseline).
-# These will be bumped as the project evolves; the spec's "2026 versions" were
-# extrapolation. We start from a confirmed-working baseline and upgrade.
-agp = "8.7.3"
-kotlin = "2.0.21"
-ksp = "2.0.21-1.0.28"
-compileSdk = "35"
+# Build tooling — modern stack aligned with ConnectBot/Haven so we can use
+# org.connectbot:termlib (compiled with Kotlin 2.3+).
+agp = "9.1.0"
+kotlin = "2.3.20"
+ksp = "2.3.6"
+compileSdk = "36"
 minSdk = "26"
 targetSdk = "35"
 jdk = "17"
 ndk = "27.2.12479018"
 
 # AndroidX / Jetpack
-composeBom = "2025.01.01"
-activityCompose = "1.9.3"
-navigationCompose = "2.8.4"
-lifecycle = "2.8.7"
+composeBom = "2026.03.01"
+activityCompose = "1.13.0"
+navigationCompose = "2.9.7"
+lifecycle = "2.10.0"
 androidxAnnotation = "1.9.1"
 datastorePreferences = "1.1.3"
 biometric = "1.2.0-alpha05"
-coreKtx = "1.15.0"
+coreKtx = "1.18.0"
 
 # Persistence
-room = "2.6.1"
+room = "2.8.4"
 
 # DI
-hilt = "2.52"
+hilt = "2.59.2"
 
 # Concurrency
-coroutines = "1.9.0"
+coroutines = "1.10.2"
 
 # Crypto
 tink = "1.15.0"
+
+# Terminal emulator — Compose-native, same version ConnectBot 4.x uses
+termlib = "0.0.24"
 
 # Testing
 junit = "4.13.2"
@@ -50,6 +52,8 @@ androidx-compose-ui-tooling = { group = "androidx.compose.ui", name = "ui-toolin
 androidx-compose-ui-tooling-preview = { group = "androidx.compose.ui", name = "ui-tooling-preview" }
 androidx-compose-material3 = { group = "androidx.compose.material3", name = "material3" }
 androidx-compose-foundation = { group = "androidx.compose.foundation", name = "foundation" }
+androidx-compose-material-icons-core = { group = "androidx.compose.material", name = "material-icons-core" }
+androidx-compose-material-icons-extended = { group = "androidx.compose.material", name = "material-icons-extended" }
 
 # Activity / Navigation / Lifecycle
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -82,6 +86,9 @@ kotlinx-coroutines-android = { group = "org.jetbrains.kotlinx", name = "kotlinx-
 # Crypto
 tink-android = { group = "com.google.crypto.tink", name = "tink-android", version.ref = "tink" }
 
+# Terminal emulator (Compose-native, same as ConnectBot / Haven)
+termlib = { group = "org.connectbot", name = "termlib", version.ref = "termlib" }
+
 # Testing
 junit = { group = "junit", name = "junit", version.ref = "junit" }
 mockk = { group = "io.mockk", name = "mockk", version.ref = "mockk" }
@@ -96,7 +103,6 @@ androidx-espresso-core = { group = "androidx.test.espresso", name = "espresso-co
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
 android-library = { id = "com.android.library", version.ref = "agp" }
-kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
 kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
 ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
 hilt = { id = "com.google.dagger.hilt.android", version.ref = "hilt" }

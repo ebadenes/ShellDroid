@@ -37,7 +37,7 @@ object DatabaseModule {
                     super.onCreate(db)
                     db.execSQL(
                         "INSERT INTO users (id, name, createdAt) VALUES (?, ?, ?)",
-                        arrayOf(
+                        arrayOf<Any>(
                             AppDatabase.DEFAULT_USER_ID,
                             AppDatabase.DEFAULT_USER_NAME,
                             System.currentTimeMillis(),
