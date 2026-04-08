@@ -23,6 +23,8 @@ import io.shelldroid.feature.hosts.HostsScreen
 import io.shelldroid.feature.hosts.tofu.ComposeHostKeyPrompter
 import io.shelldroid.feature.identities.IdentitiesScreen
 import io.shelldroid.feature.identities.IdentityEditScreen
+import io.shelldroid.feature.portforward.PortForwardEditScreen
+import io.shelldroid.feature.portforward.PortForwardsScreen
 import io.shelldroid.feature.snippets.SnippetEditScreen
 import io.shelldroid.feature.snippets.SnippetsScreen
 import io.shelldroid.feature.terminal.TerminalScreen
@@ -42,6 +44,10 @@ object Routes {
     const val SNIPPETS = "snippets"
     const val SNIPPET_EDIT = "snippet/edit?id={id}"
     fun snippetEdit(id: String? = null): String = "snippet/edit?id=${id.orEmpty()}"
+
+    const val PORTFORWARDS = "portforwards"
+    const val PORTFORWARD_EDIT = "portforward/edit?id={id}"
+    fun portForwardEdit(id: String? = null): String = "portforward/edit?id=${id.orEmpty()}"
 }
 
 @EntryPoint
@@ -83,6 +89,7 @@ fun ShellDroidNavHost(navController: NavHostController = rememberNavController()
                 onEditHost = { id -> navController.navigate(Routes.hostEdit(id)) },
                 onOpenIdentities = { navController.navigate(Routes.IDENTITIES) },
                 onOpenSnippets = { navController.navigate(Routes.SNIPPETS) },
+                onOpenPortForwards = { navController.navigate(Routes.PORTFORWARDS) },
                 prompter = null, // mounted at NavHost level
                 viewModel = vm,
             )
@@ -148,6 +155,30 @@ fun ShellDroidNavHost(navController: NavHostController = rememberNavController()
             IdentityEditScreen(
                 identityId = id,
                 onDone = { navController.popBackStack() },
+            )
+        }
+        composable(Routes.PORTFORWARDS) {
+            PortForwardsScreen(
+                onAdd = { navController.navigate(Routes.portForwardEdit()) },
+                onEdit = { id -> navController.navigate(Routes.portForwardEdit(id)) },
+                onBack = { navController.popBackStack() },
+            )
+        }
+        composable(
+            route = Routes.PORTFORWARD_EDIT,
+            arguments = listOf(
+                navArgument("id") {
+                    type = NavType.StringType
+                    nullable = true
+                    defaultValue = null
+                },
+            ),
+        ) { backStack ->
+            val id = backStack.arguments?.getString("id")?.takeIf { it.isNotEmpty() }
+            PortForwardEditScreen(
+                portForwardId = id,
+                onDone = { navController.popBackStack() },
+                onBack = { navController.popBackStack() },
             )
         }
         composable(Routes.TERMINAL) { backStack ->
