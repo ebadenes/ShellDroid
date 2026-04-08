@@ -14,7 +14,7 @@ object BuiltInSkins {
     val SHELLDROID_DARK = TerminalSkin(
         id = "shelldroid-dark",
         name = "ShellDroid Dark",
-        textSizeSp = 14f,
+        textSizeSp = 12f,
         background = 0xff0a0e14.toInt(),
         foreground = 0xffe6e1cf.toInt(),
         cursor = 0xffffcc66.toInt(),
@@ -41,7 +41,7 @@ object BuiltInSkins {
     val SOLARIZED_DARK = TerminalSkin(
         id = "solarized-dark",
         name = "Solarized Dark",
-        textSizeSp = 14f,
+        textSizeSp = 12f,
         background = 0xff002b36.toInt(),
         foreground = 0xff839496.toInt(),
         cursor = 0xff93a1a1.toInt(),
