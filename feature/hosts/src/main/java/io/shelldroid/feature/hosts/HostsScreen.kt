@@ -1,7 +1,134 @@
 package io.shelldroid.feature.hosts
 
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material3.Card
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
+import io.shelldroid.feature.hosts.tofu.ComposeHostKeyPrompter
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun HostsScreen() {
+fun HostsScreen(
+    onAddHost: () -> Unit = {},
+    onEditHost: (String) -> Unit = {},
+    prompter: ComposeHostKeyPrompter? = null,
+    viewModel: HostsListViewModel = hiltViewModel(),
+) {
+    val hosts by viewModel.hosts.collectAsState()
+    val connectState by viewModel.connectState.collectAsState()
+    val snackbarHostState = remember { SnackbarHostState() }
+
+    LaunchedEffect(connectState) {
+        when (val s = connectState) {
+            is HostsListViewModel.ConnectState.Error -> {
+                snackbarHostState.showSnackbar(s.message)
+                viewModel.resetConnectState()
+            }
+            is HostsListViewModel.ConnectState.Connected -> {
+                snackbarHostState.showSnackbar("Conectado")
+                viewModel.resetConnectState()
+            }
+            else -> Unit
+        }
+    }
+
+    Scaffold(
+        topBar = { TopAppBar(title = { Text("Hosts") }) },
+        floatingActionButton = {
+            FloatingActionButton(onClick = onAddHost) {
+                Icon(Icons.Default.Add, contentDescription = "Add host")
+            }
+        },
+        snackbarHost = { SnackbarHost(snackbarHostState) },
+    ) { padding ->
+        Box(Modifier.fillMaxSize().padding(padding)) {
+            if (hosts.isEmpty()) {
+                Text(
+                    "No hay hosts. Tocá + para agregar.",
+                    modifier = Modifier.align(Alignment.Center),
+                )
+            } else {
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize().padding(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    items(hosts, key = { it.id }) { host ->
+                        Card(modifier = Modifier.fillMaxWidth()) {
+                            Column(Modifier.padding(12.dp)) {
+                                Text(host.name, style = MaterialTheme.typography.titleMedium)
+                                Text(
+                                    "${host.username}@${host.hostname}:${host.port}",
+                                    style = MaterialTheme.typography.bodySmall,
+                                )
+                                Row(
+                                    Modifier.fillMaxWidth().padding(top = 8.dp),
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                ) {
+                                    val connecting = (connectState as? HostsListViewModel.ConnectState.Connecting)
+                                        ?.hostId == host.id
+                                    OutlinedButton(
+                                        onClick = { viewModel.connect(host.id) },
+                                        enabled = !connecting,
+                                    ) {
+                                        if (connecting) {
+                                            CircularProgressIndicator(
+                                                modifier = Modifier.size(16.dp),
+                                                strokeWidth = 2.dp,
+                                            )
+                                        } else {
+                                            Text("Conectar")
+                                        }
+                                    }
+                                    IconButton(onClick = { onEditHost(host.id) }) {
+                                        Icon(Icons.Default.Edit, contentDescription = "Edit")
+                                    }
+                                    IconButton(onClick = { viewModel.delete(host) }) {
+                                        Icon(Icons.Default.Delete, contentDescription = "Delete")
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // Optional TOFU dialog rendering — feature modules render the prompts when wired in.
+    if (prompter != null) {
+        HostKeyDialogHost(prompter)
+    }
 }
