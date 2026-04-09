@@ -158,6 +158,7 @@ fun ShellDroidNavHost(navController: NavHostController = rememberNavController()
             IdentitiesScreen(
                 onAddIdentity = { navController.navigate(Routes.identityEdit()) },
                 onEditIdentity = { id -> navController.navigate(Routes.identityEdit(id)) },
+                onBack = { navController.popBackStack() },
             )
         }
         composable(

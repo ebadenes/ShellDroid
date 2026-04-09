@@ -10,6 +10,10 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material3.IconButton
+import androidx.compose.ui.res.stringResource
+import io.shelldroid.core.ui.R as UiR
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
@@ -35,12 +39,22 @@ import androidx.hilt.navigation.compose.hiltViewModel
 fun IdentitiesScreen(
     onAddIdentity: () -> Unit = {},
     onEditIdentity: (String) -> Unit = {},
+    onBack: () -> Unit = {},
     viewModel: IdentitiesListViewModel = hiltViewModel(),
 ) {
     val identities by viewModel.identities.collectAsState()
 
     Scaffold(
-        topBar = { TopAppBar(title = { Text("Identities") }) },
+        topBar = {
+            TopAppBar(
+                title = { Text(stringResource(UiR.string.identities)) },
+                navigationIcon = {
+                    IconButton(onClick = onBack) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                    }
+                },
+            )
+        },
         floatingActionButton = {
             FloatingActionButton(onClick = onAddIdentity) {
                 Icon(Icons.Default.Add, contentDescription = "Add identity")
@@ -50,7 +64,7 @@ fun IdentitiesScreen(
         Box(Modifier.fillMaxSize().padding(padding)) {
             if (identities.isEmpty()) {
                 Text(
-                    "No hay identities. Tocá + para agregar.",
+                    stringResource(UiR.string.no_identities),
                     modifier = Modifier.align(Alignment.Center),
                 )
             } else {

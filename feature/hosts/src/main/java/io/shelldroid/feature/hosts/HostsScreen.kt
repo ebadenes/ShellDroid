@@ -14,6 +14,8 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.ui.res.stringResource
+import io.shelldroid.core.ui.R as UiR
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
@@ -115,7 +117,7 @@ fun HostsScreen(
         Box(Modifier.fillMaxSize().padding(padding)) {
             if (hosts.isEmpty()) {
                 Text(
-                    "No hay hosts. Tocá + para agregar.",
+                    stringResource(UiR.string.no_hosts),
                     modifier = Modifier.align(Alignment.Center),
                 )
             } else {

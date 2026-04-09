@@ -53,8 +53,10 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
+import io.shelldroid.core.ui.R as UiR
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import org.connectbot.terminal.Terminal
 
@@ -169,25 +171,20 @@ fun TerminalScreen(
     if (showBackDialog) {
         AlertDialog(
             onDismissRequest = { showBackDialog = false },
-            title = { Text("¿Mantener la conexión?") },
-            text = {
-                Text(
-                    "La sesión SSH puede quedarse activa en segundo plano " +
-                        "para reanudarla más rápido, o desconectarse completamente.",
-                )
-            },
+            title = { Text(stringResource(UiR.string.keep_title)) },
+            text = { Text(stringResource(UiR.string.keep_body)) },
             confirmButton = {
                 TextButton(onClick = {
                     showBackDialog = false
                     onBack()
-                }) { Text("Mantener") }
+                }) { Text(stringResource(UiR.string.keep)) }
             },
             dismissButton = {
                 TextButton(onClick = {
                     showBackDialog = false
                     viewModel.disconnectAndRelease()
                     onBack()
-                }) { Text("Desconectar") }
+                }) { Text(stringResource(UiR.string.disconnect)) }
             },
         )
     }
