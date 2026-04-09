@@ -9,6 +9,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import java.util.UUID
 import javax.inject.Inject
 
 @HiltViewModel
@@ -21,6 +22,22 @@ class IdentitiesListViewModel @Inject constructor(
 
     fun delete(identity: Identity) {
         viewModelScope.launch { repo.delete(identity) }
+    }
+
+    fun clone(identity: Identity) {
+        viewModelScope.launch {
+            val copy = Identity(
+                id = UUID.randomUUID().toString(),
+                userId = identity.userId,
+                name = "${identity.name} (copia)",
+                authType = identity.authType,
+                encryptedSecret = identity.encryptedSecret.copyOf(),
+                encryptedPassphrase = identity.encryptedPassphrase?.copyOf(),
+                needsReentry = identity.needsReentry,
+                createdAt = System.currentTimeMillis(),
+            )
+            repo.upsert(copy)
+        }
     }
 
     fun clearReentryFlag(identity: Identity) {

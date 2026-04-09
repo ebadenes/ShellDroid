@@ -35,8 +35,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalClipboardManager
-import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -115,6 +113,7 @@ fun PortForwardsScreen(
                             PortForwardCard(
                                 pf = pf,
                                 onClick = { onEdit(pf.id) },
+                                onClone = { viewModel.clone(pf) },
                                 onDelete = { pfToDelete = pf },
                             )
                         }
@@ -129,6 +128,7 @@ fun PortForwardsScreen(
 private fun PortForwardCard(
     pf: PortForward,
     onClick: () -> Unit,
+    onClone: () -> Unit,
     onDelete: () -> Unit,
 ) {
     Card(
@@ -158,11 +158,8 @@ private fun PortForwardCard(
                     style = MaterialTheme.typography.bodySmall,
                 )
             }
-            val clipboardManager = LocalClipboardManager.current
-            IconButton(onClick = {
-                clipboardManager.setText(AnnotatedString(forwardingString(pf)))
-            }) {
-                Icon(Icons.Default.ContentCopy, contentDescription = "Copy")
+            IconButton(onClick = onClone) {
+                Icon(Icons.Default.ContentCopy, contentDescription = "Clone")
             }
             IconButton(onClick = onDelete) {
                 Icon(Icons.Default.Delete, contentDescription = "Delete")

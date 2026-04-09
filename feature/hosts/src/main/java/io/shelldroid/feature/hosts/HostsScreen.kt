@@ -54,8 +54,6 @@ import androidx.compose.runtime.setValue
 import io.shelldroid.core.db.entities.Host
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalClipboardManager
-import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
@@ -77,7 +75,6 @@ fun HostsScreen(
     val hosts by viewModel.hosts.collectAsState()
     val connectState by viewModel.connectState.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
-    val clipboardManager = LocalClipboardManager.current
     var hostToDelete by remember { mutableStateOf<Host?>(null) }
     var showQuickConnect by remember { mutableStateOf(false) }
     var overflowExpanded by remember { mutableStateOf(false) }
@@ -274,10 +271,8 @@ fun HostsScreen(
                                         strokeWidth = 2.dp,
                                     )
                                 } else {
-                                    IconButton(onClick = {
-                                        clipboardManager.setText(AnnotatedString("${host.username}@${host.hostname}:${host.port}"))
-                                    }) {
-                                        Icon(Icons.Default.ContentCopy, contentDescription = "Copy", modifier = Modifier.size(20.dp))
+                                    IconButton(onClick = { viewModel.clone(host) }) {
+                                        Icon(Icons.Default.ContentCopy, contentDescription = "Clone", modifier = Modifier.size(20.dp))
                                     }
                                     IconButton(onClick = { onEditHost(host.id) }) {
                                         Icon(Icons.Default.Edit, contentDescription = "Edit", modifier = Modifier.size(20.dp))

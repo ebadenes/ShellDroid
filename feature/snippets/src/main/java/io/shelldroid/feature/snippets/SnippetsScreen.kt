@@ -35,8 +35,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalClipboardManager
-import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -54,7 +52,6 @@ fun SnippetsScreen(
     viewModel: SnippetsListViewModel = hiltViewModel(),
 ) {
     val snippets by viewModel.snippets.collectAsState()
-    val clipboardManager = LocalClipboardManager.current
     var snippetToDelete by remember { mutableStateOf<Snippet?>(null) }
 
     if (snippetToDelete != null) {
@@ -122,10 +119,8 @@ fun SnippetsScreen(
                                         overflow = TextOverflow.Ellipsis,
                                     )
                                 }
-                                IconButton(onClick = {
-                                    clipboardManager.setText(AnnotatedString(snippet.command))
-                                }) {
-                                    Icon(Icons.Default.ContentCopy, contentDescription = "Copy")
+                                IconButton(onClick = { viewModel.clone(snippet) }) {
+                                    Icon(Icons.Default.ContentCopy, contentDescription = "Clone")
                                 }
                                 IconButton(onClick = { onRunSnippet(snippet) }) {
                                     Icon(Icons.Default.PlayArrow, contentDescription = "Run")

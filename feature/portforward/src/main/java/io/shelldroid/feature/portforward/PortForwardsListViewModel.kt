@@ -16,6 +16,7 @@ import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import java.util.UUID
 import javax.inject.Inject
 
 @HiltViewModel
@@ -49,5 +50,15 @@ class PortForwardsListViewModel @Inject constructor(
 
     fun delete(pf: PortForward) {
         viewModelScope.launch { repo.delete(pf) }
+    }
+
+    fun clone(pf: PortForward) {
+        viewModelScope.launch {
+            val copy = pf.copy(
+                id = UUID.randomUUID().toString(),
+                createdAt = System.currentTimeMillis(),
+            )
+            repo.save(copy)
+        }
     }
 }

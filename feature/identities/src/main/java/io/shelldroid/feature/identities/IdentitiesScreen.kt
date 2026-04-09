@@ -35,9 +35,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import io.shelldroid.core.db.entities.Identity
@@ -52,7 +50,6 @@ fun IdentitiesScreen(
     viewModel: IdentitiesListViewModel = hiltViewModel(),
 ) {
     val identities by viewModel.identities.collectAsState()
-    val clipboardManager = LocalClipboardManager.current
     var identityToDelete by remember { mutableStateOf<Identity?>(null) }
 
     if (identityToDelete != null) {
@@ -125,10 +122,8 @@ fun IdentitiesScreen(
                                         )
                                     }
                                 }
-                                IconButton(onClick = {
-                                    clipboardManager.setText(AnnotatedString(identity.name))
-                                }) {
-                                    Icon(Icons.Default.ContentCopy, contentDescription = "Copy", modifier = Modifier.size(20.dp))
+                                IconButton(onClick = { viewModel.clone(identity) }) {
+                                    Icon(Icons.Default.ContentCopy, contentDescription = "Clone", modifier = Modifier.size(20.dp))
                                 }
                                 IconButton(onClick = { onEditIdentity(identity.id) }) {
                                     Icon(Icons.Default.Edit, contentDescription = "Edit", modifier = Modifier.size(20.dp))

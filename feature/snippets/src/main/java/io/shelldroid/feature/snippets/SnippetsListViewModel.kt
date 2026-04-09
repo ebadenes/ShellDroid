@@ -9,6 +9,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import java.util.UUID
 import javax.inject.Inject
 
 @HiltViewModel
@@ -21,5 +22,16 @@ class SnippetsListViewModel @Inject constructor(
 
     fun delete(snippet: Snippet) {
         viewModelScope.launch { repo.delete(snippet) }
+    }
+
+    fun clone(snippet: Snippet) {
+        viewModelScope.launch {
+            val copy = snippet.copy(
+                id = UUID.randomUUID().toString(),
+                name = "${snippet.name} (copia)",
+                createdAt = System.currentTimeMillis(),
+            )
+            repo.upsert(copy)
+        }
     }
 }

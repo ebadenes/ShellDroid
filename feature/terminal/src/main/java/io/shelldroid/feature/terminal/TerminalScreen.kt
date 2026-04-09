@@ -1,6 +1,8 @@
 package io.shelldroid.feature.terminal
 
 import android.app.Activity
+import android.content.Intent
+import android.net.Uri
 import android.graphics.Typeface
 import android.view.KeyEvent
 import androidx.activity.compose.BackHandler
@@ -42,12 +44,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -86,8 +86,6 @@ fun TerminalScreen(
 
     val focusRequester = remember { FocusRequester() }
     val modifierManager = remember { ShellDroidModifierManager() }
-    val clipboardManager = LocalClipboardManager.current
-
     val context = LocalContext.current
     val view = LocalView.current
     val insetsController: WindowInsetsControllerCompat? = remember(context, view) {
@@ -271,7 +269,12 @@ fun TerminalScreen(
                                 showHackerBar = true
                             }
                         },
-                        onHyperlinkClick = { /* TODO */ },
+                        onHyperlinkClick = { url ->
+                            try {
+                                val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
+                                context.startActivity(intent)
+                            } catch (_: Throwable) {}
+                        },
                     )
 
                     // Zoom indicator
@@ -302,19 +305,6 @@ fun TerminalScreen(
                         foreground = Color(skin.foreground),
                         onRequestShowKeyboard = { forceShowKeyboard() },
                         onRequestSnippets = { showSnippetPicker = true },
-                        onPaste = {
-                            val text = clipboardManager.getText()?.text ?: return@TerminalKeyBar
-                            bridge?.sendInput(text.toByteArray(Charsets.UTF_8))
-                        },
-                        onCopyAll = {
-                            try {
-                                val output = em.getLastCommandOutput()
-                                if (!output.isNullOrEmpty()) {
-                                    clipboardManager.setText(AnnotatedString(output))
-                                }
-                            } catch (_: Throwable) {}
-                        },
-                        onClear = { em.clearScreen() },
                     )
                 }
             }
