@@ -34,12 +34,7 @@ include(":feature:portforward")
 // Service modules
 include(":service:session")
 
-// Vendor modules (Termux). vendor/ is populated by vendor/setup.sh.
-// Only enabled when the directories exist (avoids breaking the build before bootstrap).
-val termuxRoot = file("vendor/termux-app")
-if (termuxRoot.resolve("terminal-emulator").exists()) {
-    include(":terminal-emulator")
-    include(":terminal-view")
-    project(":terminal-emulator").projectDir = file("vendor/termux-app/terminal-emulator")
-    project(":terminal-view").projectDir     = file("vendor/termux-app/terminal-view")
-}
+// Vendor: Termux terminal-emulator and terminal-view were used in phases 2-8
+// but replaced by org.connectbot:termlib in the phase 9 terminal rewrite.
+// The vendor source remains in vendor/termux-app/ for reference but is no
+// longer compiled into the build.

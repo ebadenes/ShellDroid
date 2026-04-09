@@ -29,6 +29,7 @@ dependencies {
     implementation(project(":core:ui"))
     implementation(project(":core:ssh"))
     implementation(project(":core:db"))
+    implementation(project(":feature:snippets"))
     implementation(libs.termlib)
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.bundles.compose)

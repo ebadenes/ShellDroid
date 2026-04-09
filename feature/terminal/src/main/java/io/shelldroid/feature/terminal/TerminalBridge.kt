@@ -232,6 +232,14 @@ class TerminalBridge(
         }
     }
 
+    /**
+     * Inject raw bytes into the write channel, as if the user typed them.
+     * Used by the snippet runner and potentially by paste operations.
+     */
+    fun sendInput(data: ByteArray) {
+        writeChannel.trySend(data)
+    }
+
     companion object {
         private const val TAG = "TerminalBridge"
     }

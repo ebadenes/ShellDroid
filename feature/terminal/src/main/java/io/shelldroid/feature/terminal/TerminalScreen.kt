@@ -8,9 +8,13 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -82,6 +86,8 @@ fun TerminalScreen(
     // visibility — that caused a feedback loop where hiding the IME
     // locked us out of being able to bring it back.
     var showSoftKeyboard by remember { mutableStateOf(true) }
+    var showSnippetPicker by remember { mutableStateOf(false) }
+    val snippets by viewModel.snippets.collectAsStateWithLifecycle()
 
     // Dynamic font size so the volume keys can zoom in/out without
     // reopening the terminal. Initial value comes from the skin.
@@ -164,6 +170,42 @@ fun TerminalScreen(
         insetsController?.show(WindowInsetsCompat.Type.ime())
     }
 
+    if (showSnippetPicker) {
+        AlertDialog(
+            onDismissRequest = { showSnippetPicker = false },
+            title = { Text("Snippets") },
+            text = {
+                if (snippets.isEmpty()) {
+                    Text("No hay snippets. Crealos desde la pantalla de Hosts.")
+                } else {
+                    LazyColumn(modifier = Modifier.heightIn(max = 300.dp)) {
+                        items(snippets, key = { it.id }) { snippet ->
+                            androidx.compose.material3.ListItem(
+                                headlineContent = { Text(snippet.name) },
+                                supportingContent = {
+                                    Text(
+                                        snippet.command,
+                                        maxLines = 1,
+                                        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                                    )
+                                },
+                                modifier = Modifier.clickable {
+                                    viewModel.runSnippet(snippet)
+                                    showSnippetPicker = false
+                                },
+                            )
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { showSnippetPicker = false }) {
+                    Text("Cerrar")
+                }
+            },
+        )
+    }
+
     Scaffold(
         containerColor = Color(skin.background),
         contentWindowInsets = ScaffoldDefaults.contentWindowInsets
@@ -223,6 +265,7 @@ fun TerminalScreen(
                     background = Color(skin.background),
                     foreground = Color(skin.foreground),
                     onRequestShowKeyboard = { forceShowKeyboard() },
+                    onRequestSnippets = { showSnippetPicker = true },
                 )
             }
         }

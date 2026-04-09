@@ -5,6 +5,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import io.shelldroid.core.db.dao.HostDao
+import io.shelldroid.core.db.entities.Snippet
+import io.shelldroid.feature.snippets.data.SnippetRepository
 import io.shelldroid.feature.terminal.skin.TerminalSkin
 import io.shelldroid.feature.terminal.skin.TerminalSkinRepository
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -30,11 +32,30 @@ import javax.inject.Inject
 class TerminalViewModel @Inject constructor(
     private val hostDao: HostDao,
     private val bridgeRegistry: TerminalBridgeRegistry,
+    private val snippetRepo: SnippetRepository,
     skinRepository: TerminalSkinRepository,
 ) : ViewModel() {
 
     val skin: StateFlow<TerminalSkin> = skinRepository.selected
         .stateIn(viewModelScope, SharingStarted.Eagerly, skinRepository.current())
+
+    /** All snippets, observable for the snippet picker dialog. */
+    val snippets: StateFlow<List<Snippet>> = snippetRepo.observeAll()
+        .stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
+
+    /**
+     * Send a snippet's command text into the active shell channel.
+     * Appends a newline so the command actually executes.
+     */
+    fun runSnippet(snippet: Snippet) {
+        val b = _bridge.value ?: return
+        val cmd = snippet.command + "\n"
+        // The bridge's onKeyboardInput callback normally routes through
+        // the writeChannel. We reuse the same path so the bytes flow
+        // through the writer coroutine and are serialized with the user's
+        // own keystrokes.
+        b.sendInput(cmd.toByteArray(Charsets.UTF_8))
+    }
 
     private val _title = MutableStateFlow("Terminal")
     val title: StateFlow<String> = _title.asStateFlow()
