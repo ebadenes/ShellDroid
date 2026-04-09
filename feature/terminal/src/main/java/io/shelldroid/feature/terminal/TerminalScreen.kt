@@ -115,10 +115,12 @@ fun TerminalScreen(
             when (keyCode) {
                 KeyEvent.KEYCODE_VOLUME_UP -> {
                     fontSizeSp = (fontSizeSp + 1f).coerceAtMost(36f)
+                    viewModel.persistFontSize(fontSizeSp)
                     true
                 }
                 KeyEvent.KEYCODE_VOLUME_DOWN -> {
                     fontSizeSp = (fontSizeSp - 1f).coerceAtLeast(6f)
+                    viewModel.persistFontSize(fontSizeSp)
                     true
                 }
                 else -> false

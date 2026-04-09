@@ -33,7 +33,7 @@ class TerminalViewModel @Inject constructor(
     private val hostDao: HostDao,
     private val bridgeRegistry: TerminalBridgeRegistry,
     private val snippetRepo: SnippetRepository,
-    skinRepository: TerminalSkinRepository,
+    private val skinRepository: TerminalSkinRepository,
 ) : ViewModel() {
 
     val skin: StateFlow<TerminalSkin> = skinRepository.selected
@@ -128,6 +128,11 @@ class TerminalViewModel @Inject constructor(
         // TerminalViewModel for the same host will get the same bridge
         // back instantly with zero reconnect work.
         Log.d(TAG, "onCleared — bridge left alive in registry for $currentHostId")
+    }
+
+    /** Persist the font size so it survives process death. */
+    fun persistFontSize(sp: Float) {
+        skinRepository.setFontSize(sp)
     }
 
     companion object { private const val TAG = "TerminalVM" }
