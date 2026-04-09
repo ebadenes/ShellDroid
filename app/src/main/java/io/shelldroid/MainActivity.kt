@@ -1,11 +1,16 @@
 package io.shelldroid
 
+import android.Manifest
 import android.content.Intent
+import android.content.pm.PackageManager
+import android.os.Build
 import android.os.Bundle
 import android.view.KeyEvent
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.core.content.ContextCompat
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -18,10 +23,16 @@ import io.shelldroid.nav.ShellDroidNavHost
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
+
+    private val notificationPermissionLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestPermission(),
+    ) { /* granted or not — the FGS runs either way, notif just won't show */ }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
         maybeDispatchTerminalLaunch(intent)
+        requestNotificationPermissionIfNeeded()
         setContent {
             ShellDroidTheme {
                 Surface(
@@ -49,6 +60,16 @@ class MainActivity : ComponentActivity() {
     private fun maybeDispatchTerminalLaunch(intent: Intent?) {
         val hostId = intent?.getStringExtra(TerminalLaunchRequest.EXTRA_HOST_ID) ?: return
         TerminalLaunchRequest.request(hostId)
+    }
+
+    private fun requestNotificationPermissionIfNeeded() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS)
+                != PackageManager.PERMISSION_GRANTED
+            ) {
+                notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+            }
+        }
     }
 
     /**
