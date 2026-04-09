@@ -27,6 +27,7 @@ import io.shelldroid.feature.portforward.PortForwardEditScreen
 import io.shelldroid.feature.portforward.PortForwardsScreen
 import io.shelldroid.feature.snippets.SnippetEditScreen
 import io.shelldroid.feature.snippets.SnippetsScreen
+import io.shelldroid.feature.terminal.TerminalLaunchRequest
 import io.shelldroid.feature.terminal.TerminalScreen
 
 object Routes {
@@ -71,6 +72,20 @@ fun ShellDroidNavHost(navController: NavHostController = rememberNavController()
     // Mount TOFU dialog host above NavHost so prompts overlay any screen.
     val prompter = rememberHostKeyPrompter()
     HostKeyDialogHost(prompter)
+
+    // Observe the foreground-service notification "Abrir terminal" deep
+    // link. When MainActivity receives an intent with EXTRA_HOST_ID it
+    // emits on TerminalLaunchRequest; we navigate to the terminal for
+    // that host. The underlying TerminalBridgeRegistry returns the
+    // already-running bridge so the screen reattaches instantly without
+    // touching the libssh session.
+    LaunchedEffect(Unit) {
+        TerminalLaunchRequest.requests.collect { hostId ->
+            navController.navigate(Routes.terminal(hostId)) {
+                launchSingleTop = true
+            }
+        }
+    }
 
     NavHost(navController = navController, startDestination = Routes.HOSTS) {
         composable(Routes.HOSTS) {

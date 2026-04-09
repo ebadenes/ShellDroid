@@ -5,7 +5,6 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import io.shelldroid.core.db.dao.HostDao
-import io.shelldroid.core.ssh.SshSessionManager
 import io.shelldroid.feature.terminal.skin.TerminalSkin
 import io.shelldroid.feature.terminal.skin.TerminalSkinRepository
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -17,18 +16,22 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 /**
- * Thin wrapper around a [TerminalBridge]. The bridge holds all the
- * libssh <-> terminal emulator plumbing and outlives the VM for async
- * cleanup, so `onCleared` never blocks the main thread.
+ * Thin presenter around a [TerminalBridge] fetched from the
+ * [TerminalBridgeRegistry]. The bridge OUTLIVES this VM — when the
+ * user hits back on the terminal screen the VM is destroyed but the
+ * bridge keeps running (reader, writer, emulator, shell channel) so
+ * coming back to the terminal screen is instantaneous and never tears
+ * down the libssh session state mid-flight (the BR1 race).
+ *
+ * Explicit disconnect via [disconnectAndRelease] releases the bridge
+ * from the registry and tears it down.
  */
 @HiltViewModel
 class TerminalViewModel @Inject constructor(
-    private val sessionManager: SshSessionManager,
     private val hostDao: HostDao,
+    private val bridgeRegistry: TerminalBridgeRegistry,
     skinRepository: TerminalSkinRepository,
 ) : ViewModel() {
-
-    val bridge: TerminalBridge = TerminalBridge(sessionManager)
 
     val skin: StateFlow<TerminalSkin> = skinRepository.selected
         .stateIn(viewModelScope, SharingStarted.Eagerly, skinRepository.current())
@@ -36,15 +39,26 @@ class TerminalViewModel @Inject constructor(
     private val _title = MutableStateFlow("Terminal")
     val title: StateFlow<String> = _title.asStateFlow()
 
-    @Volatile private var attached: Boolean = false
     @Volatile private var currentHostId: String? = null
 
+    private val _bridge = MutableStateFlow<TerminalBridge?>(null)
     /**
-     * Attach to the warm SSH session for [hostId] and spin up the
-     * emulator. Idempotent: repeat calls while attached are no-ops.
-     * Intended to be called once from [TerminalScreen] inside a
-     * [LaunchedEffect] or the [androidx.compose.ui.viewinterop.AndroidView]
-     * factory / layout callback with the real grid dimensions.
+     * Backing [TerminalBridge] for the current [hostId]. Call [attach]
+     * first to populate. Null before attach or after
+     * [disconnectAndRelease]. Exposed as a [StateFlow] so the Compose
+     * screen can recompose when it becomes available.
+     */
+    val bridge: StateFlow<TerminalBridge?> = _bridge.asStateFlow()
+
+    /**
+     * Attach to the warm SSH session for [hostId]. Idempotent —
+     * subsequent calls while already attached to the same host are
+     * no-ops, and calls for a different host while the previous one
+     * is still alive implicitly rebind (but this VM is per-screen
+     * anyway so that should not happen in practice).
+     *
+     * The bridge is fetched from the [TerminalBridgeRegistry] so the
+     * same instance is returned across VM lifecycles for the same host.
      */
     fun attach(
         hostId: String,
@@ -53,18 +67,18 @@ class TerminalViewModel @Inject constructor(
         foreground: Int,
         background: Int,
     ) {
-        if (attached) return
-        attached = true
+        if (currentHostId == hostId && _bridge.value != null) return
         currentHostId = hostId
         Log.d(TAG, "attach(host=$hostId ${cols}x${rows})")
 
-        // Load the host title in the background (cosmetic only).
         viewModelScope.launch {
             val host = hostDao.findById(hostId) ?: return@launch
             _title.value = host.name.ifBlank { "${host.username}@${host.hostname}" }
         }
 
-        bridge.attach(
+        val b = bridgeRegistry.getOrCreate(hostId)
+        _bridge.value = b
+        b.attach(
             hostId = hostId,
             initialCols = cols,
             initialRows = rows,
@@ -74,20 +88,25 @@ class TerminalViewModel @Inject constructor(
     }
 
     /**
-     * Hard-disconnect the underlying SSH session. Called from the back
-     * dialog's "Desconectar" option.
+     * Hard-disconnect: release the bridge from the registry AND
+     * disconnect the underlying SSH session from [SshSessionManager].
+     * Called from the back dialog's "Desconectar" option.
      */
-    fun disconnectAndDetach() {
-        Log.d(TAG, "disconnectAndDetach($currentHostId)")
-        bridge.detach(disconnectSession = true)
-        attached = false
+    fun disconnectAndRelease() {
+        val host = currentHostId ?: return
+        Log.d(TAG, "disconnectAndRelease($host)")
+        bridgeRegistry.release(host, disconnectSession = true)
+        _bridge.value = null
+        currentHostId = null
     }
 
     override fun onCleared() {
         super.onCleared()
-        Log.d(TAG, "onCleared — detaching bridge (session stays warm)")
-        bridge.detach(disconnectSession = false)
-        attached = false
+        // DO NOT detach the bridge. It lives in TerminalBridgeRegistry
+        // and outlives this VM by design. The next TerminalScreen /
+        // TerminalViewModel for the same host will get the same bridge
+        // back instantly with zero reconnect work.
+        Log.d(TAG, "onCleared — bridge left alive in registry for $currentHostId")
     }
 
     companion object { private const val TAG = "TerminalVM" }

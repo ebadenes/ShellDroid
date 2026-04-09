@@ -57,7 +57,13 @@ fun TerminalScreen(
 ) {
     val title by viewModel.title.collectAsStateWithLifecycle()
     val skin by viewModel.skin.collectAsStateWithLifecycle()
-    val emulator by viewModel.bridge.emulator.collectAsStateWithLifecycle()
+    // Bridge is populated in attach() below. Observe it, then collect the
+    // nested emulator flow whenever the bridge is non-null.
+    val bridge by viewModel.bridge.collectAsStateWithLifecycle()
+    val emulator by (
+        bridge?.emulator
+            ?: kotlinx.coroutines.flow.MutableStateFlow(null)
+    ).collectAsStateWithLifecycle()
 
     val focusRequester = remember { FocusRequester() }
     val modifierManager = remember { ShellDroidModifierManager() }
@@ -141,7 +147,7 @@ fun TerminalScreen(
             dismissButton = {
                 TextButton(onClick = {
                     showBackDialog = false
-                    viewModel.disconnectAndDetach()
+                    viewModel.disconnectAndRelease()
                     onBack()
                 }) { Text("Desconectar") }
             },
