@@ -37,7 +37,15 @@ class TerminalBridgeRegistry @Inject constructor(
      * a second attach is a no-op (see [TerminalBridge.attach]).
      */
     fun getOrCreate(hostId: String): TerminalBridge {
-        return bridges.getOrPut(hostId) { TerminalBridge(sessionManager) }
+        val existing = bridges[hostId]
+        // A Closed bridge is dead (reader exited, channel freed). Replace
+        // it with a fresh one so the next attach() opens a new shell.
+        if (existing != null && existing.state.value != TerminalBridge.State.Closed) {
+            return existing
+        }
+        val fresh = TerminalBridge(sessionManager)
+        bridges[hostId] = fresh
+        return fresh
     }
 
     /** Returns `true` if a bridge already exists for [hostId]. */
