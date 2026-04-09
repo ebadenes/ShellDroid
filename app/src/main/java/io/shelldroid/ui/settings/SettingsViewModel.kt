@@ -48,9 +48,17 @@ class SettingsViewModel @Inject constructor(
             selectedSkinId = skinRepository.current().id,
             fontSizeSp = skinRepository.current().textSizeSp,
             themeMode = AppTheme.mode,
+            language = currentLanguage(),
             appVersion = getAppVersion(),
         )
     )
+
+    private fun currentLanguage(): AppLanguage {
+        val locales = AppCompatDelegate.getApplicationLocales()
+        if (locales.isEmpty) return AppLanguage.SYSTEM
+        val tag = locales.get(0)?.language ?: return AppLanguage.SYSTEM
+        return AppLanguage.entries.firstOrNull { it.code == tag } ?: AppLanguage.SYSTEM
+    }
     val state: State<SettingsState> = _state
 
     val availableSkins: List<TerminalSkin> = skinRepository.available
