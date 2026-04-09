@@ -148,6 +148,12 @@ fun TerminalScreen(
         }
     }
 
+    // When the skin changes (user picked a different theme in Settings),
+    // push the new colors into the running emulator without reopening.
+    LaunchedEffect(skin) {
+        bridge?.applyColors(skin.ansi, skin.foreground, skin.background)
+    }
+
     LaunchedEffect(hostId, skin.background, skin.foreground) {
         viewModel.attach(
             hostId = hostId,

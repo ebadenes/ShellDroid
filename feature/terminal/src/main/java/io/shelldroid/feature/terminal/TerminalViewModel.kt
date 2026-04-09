@@ -99,12 +99,14 @@ class TerminalViewModel @Inject constructor(
 
         val b = bridgeRegistry.getOrCreate(hostId)
         _bridge.value = b
+        val currentSkin = skinRepository.current()
         b.attach(
             hostId = hostId,
             initialCols = cols,
             initialRows = rows,
             defaultForeground = foreground,
             defaultBackground = background,
+            ansiPalette = currentSkin.ansi,
         )
     }
 

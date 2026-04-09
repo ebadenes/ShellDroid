@@ -78,6 +78,7 @@ class TerminalBridge(
         initialRows: Int,
         defaultForeground: Int,
         defaultBackground: Int,
+        ansiPalette: IntArray? = null,
     ): Boolean {
         if (_emulator.value != null) return true // already attached
         val client = sessionManager.getClient(hostId)
@@ -113,6 +114,14 @@ class TerminalBridge(
             onClipboardCopy = { /* TODO: wire to ClipboardManager */ },
             onProgressChange = { _, _ -> /* OSC 9;4 — TODO */ },
         )
+        // Apply the full 16-color ANSI palette + fg/bg/cursor so the
+        // terminal renders with the skin's colors instead of termlib's
+        // built-in defaults. Without this the shell's own ANSI escapes
+        // render with termlib's palette which doesn't match the skin.
+        if (ansiPalette != null && ansiPalette.size >= 16) {
+            em.applyColorScheme(ansiPalette, defaultForeground, defaultBackground)
+        }
+
         _emulator.value = em
 
         scope.launch {
@@ -236,6 +245,15 @@ class TerminalBridge(
                 scope.cancel()
             }
         }
+    }
+
+    /**
+     * Apply a new color scheme to the running emulator. Call this when
+     * the user changes the terminal skin in Settings while a session
+     * is active.
+     */
+    fun applyColors(ansi: IntArray, fg: Int, bg: Int) {
+        _emulator.value?.applyColorScheme(ansi, fg, bg)
     }
 
     /**
