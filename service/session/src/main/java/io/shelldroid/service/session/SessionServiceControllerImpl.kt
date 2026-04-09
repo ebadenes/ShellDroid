@@ -2,6 +2,7 @@ package io.shelldroid.service.session
 
 import android.content.Context
 import android.content.Intent
+import android.util.Log
 import androidx.core.content.ContextCompat
 import dagger.hilt.android.qualifiers.ApplicationContext
 import io.shelldroid.core.ssh.SessionServiceController
@@ -21,6 +22,7 @@ class SessionServiceControllerImpl @Inject constructor(
     @ApplicationContext private val ctx: Context,
 ) : SessionServiceController {
     override fun ensureRunning() {
+        Log.d("SessionSvcCtrl", "ensureRunning — starting SshSessionService")
         val intent = Intent(ctx, SshSessionService::class.java)
         ContextCompat.startForegroundService(ctx, intent)
     }

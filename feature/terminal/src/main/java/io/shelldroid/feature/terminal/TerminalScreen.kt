@@ -8,10 +8,16 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -93,6 +99,14 @@ fun TerminalScreen(
     // reopening the terminal. Initial value comes from the skin.
     var fontSizeSp by remember(skin.textSizeSp) { mutableStateOf(skin.textSizeSp) }
 
+    // Brief overlay showing the font size after a volume-key zoom.
+    var showZoomIndicator by remember { mutableStateOf(false) }
+    LaunchedEffect(fontSizeSp) {
+        showZoomIndicator = true
+        kotlinx.coroutines.delay(1200)
+        showZoomIndicator = false
+    }
+
     // Install a hardware key interceptor while this screen is on screen.
     // Volume Up  -> zoom in (+1 sp, capped at 36)
     // Volume Down -> zoom out (-1 sp, floor 6)
@@ -121,6 +135,16 @@ fun TerminalScreen(
     val systemImeVisible = imeBottom > 0
 
     var showBackDialog by remember { mutableStateOf(false) }
+
+    // Navigate back when the remote shell exits (EOF, disconnect, error).
+    val bridgeState by (bridge?.state
+        ?: kotlinx.coroutines.flow.MutableStateFlow(TerminalBridge.State.Idle))
+        .collectAsStateWithLifecycle()
+    LaunchedEffect(bridgeState) {
+        if (bridgeState is TerminalBridge.State.Closed) {
+            onBack()
+        }
+    }
 
     LaunchedEffect(hostId, skin.background, skin.foreground) {
         viewModel.attach(
@@ -233,31 +257,46 @@ fun TerminalScreen(
                 .windowInsetsPadding(WindowInsets.imeAnimationTarget),
         ) {
             if (em != null) {
-                Terminal(
-                    terminalEmulator = em,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .weight(1f),
-                    typeface = Typeface.MONOSPACE,
-                    initialFontSize = fontSizeSp.sp,
-                    keyboardEnabled = true,
-                    showSoftKeyboard = showSoftKeyboard,
-                    focusRequester = focusRequester,
-                    forcedSize = null,
-                    modifierManager = modifierManager,
-                    onSelectionControllerAvailable = { /* no-op */ },
-                    onTerminalTap = {
-                        // Always try to show the keyboard on tap. Safe
-                        // idempotent call to IMM.
-                        forceShowKeyboard()
-                    },
-                    onImeVisibilityChanged = { visible ->
-                        if (visible) showSoftKeyboard = true
-                        // Do not mirror visible=false back — that was the
-                        // feedback loop that prevented recovery.
-                    },
-                    onHyperlinkClick = { /* TODO */ },
-                )
+                Box(modifier = Modifier.fillMaxWidth().weight(1f)) {
+                    Terminal(
+                        terminalEmulator = em,
+                        modifier = Modifier.fillMaxSize(),
+                        typeface = Typeface.MONOSPACE,
+                        initialFontSize = fontSizeSp.sp,
+                        keyboardEnabled = true,
+                        showSoftKeyboard = showSoftKeyboard,
+                        focusRequester = focusRequester,
+                        forcedSize = null,
+                        modifierManager = modifierManager,
+                        onSelectionControllerAvailable = { /* no-op */ },
+                        onTerminalTap = { forceShowKeyboard() },
+                        onImeVisibilityChanged = { visible ->
+                            if (visible) showSoftKeyboard = true
+                        },
+                        onHyperlinkClick = { /* TODO */ },
+                    )
+
+                    // Zoom indicator overlay (top-center, fades after 1.2s)
+                    androidx.compose.animation.AnimatedVisibility(
+                        visible = showZoomIndicator,
+                        enter = fadeIn(),
+                        exit = fadeOut(),
+                        modifier = Modifier
+                            .align(androidx.compose.ui.Alignment.TopCenter)
+                            .padding(top = 16.dp),
+                    ) {
+                        Text(
+                            text = "${fontSizeSp.toInt()} sp",
+                            color = Color.White,
+                            modifier = Modifier
+                                .background(
+                                    Color.Black.copy(alpha = 0.7f),
+                                    RoundedCornerShape(8.dp),
+                                )
+                                .padding(horizontal = 16.dp, vertical = 8.dp),
+                        )
+                    }
+                }
 
                 TerminalKeyBar(
                     emulator = em,
