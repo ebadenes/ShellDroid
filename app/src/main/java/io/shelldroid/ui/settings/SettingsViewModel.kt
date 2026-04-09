@@ -8,6 +8,8 @@ import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import io.shelldroid.core.db.dao.KnownHostDao
+import io.shelldroid.core.ui.AppTheme
+import io.shelldroid.core.ui.ThemeMode
 import io.shelldroid.feature.terminal.skin.BuiltInSkins
 import io.shelldroid.feature.terminal.skin.TerminalSkin
 import io.shelldroid.feature.terminal.skin.TerminalSkinRepository
@@ -17,6 +19,7 @@ import javax.inject.Inject
 data class SettingsState(
     val selectedSkinId: String = BuiltInSkins.DEFAULT.id,
     val fontSizeSp: Float = BuiltInSkins.DEFAULT.textSizeSp,
+    val themeMode: ThemeMode = ThemeMode.SYSTEM,
     val keepScreenOn: Boolean = false,
     val pinLockEnabled: Boolean = false,
     val autoLockLabel: String = "5 minutos",
@@ -34,6 +37,7 @@ class SettingsViewModel @Inject constructor(
         SettingsState(
             selectedSkinId = skinRepository.current().id,
             fontSizeSp = skinRepository.current().textSizeSp,
+            themeMode = AppTheme.mode,
             appVersion = getAppVersion(),
         )
     )
@@ -52,8 +56,12 @@ class SettingsViewModel @Inject constructor(
 
     fun setFontSize(sp: Float) {
         _state.value = _state.value.copy(fontSizeSp = sp)
-        // TODO: persist to DataStore and propagate to TerminalScreen
-        // For now the terminal picks up the skin's default on next open.
+        skinRepository.setFontSize(sp)
+    }
+
+    fun setThemeMode(mode: ThemeMode) {
+        _state.value = _state.value.copy(themeMode = mode)
+        AppTheme.mode = mode
     }
 
     fun setKeepScreenOn(on: Boolean) {

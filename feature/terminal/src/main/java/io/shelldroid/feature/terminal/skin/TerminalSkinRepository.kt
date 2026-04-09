@@ -8,18 +8,13 @@ import javax.inject.Singleton
 
 /**
  * Holds the currently-active [TerminalSkin] and the list of available
- * skins. Right now this is purely in-memory (`DEFAULT`) — when the user
- * picks a skin it stays until process death.
+ * skins. Right now this is purely in-memory — when the user picks a
+ * skin or changes font size it stays until process death.
  *
  * Intended migration path:
- *  - persist the chosen skin `id` in the same DataStore used by
- *    `:core:security` / `:core:db` (qualified `@SkinPrefsDataStore`),
+ *  - persist the chosen skin `id` + font size override in a DataStore,
  *  - load / save as a flow,
- *  - expose `save(TerminalSkin)` for user-defined skins that aren't in
- *    [BuiltInSkins].
- *
- * The interface already exposes flows so the call-sites (VM, screen)
- * don't change when persistence lands.
+ *  - expose `save(TerminalSkin)` for user-defined skins.
  */
 @Singleton
 class TerminalSkinRepository @Inject constructor() {
@@ -31,7 +26,14 @@ class TerminalSkinRepository @Inject constructor() {
 
     fun select(skinId: String) {
         val match = available.firstOrNull { it.id == skinId } ?: return
-        _selected.value = match
+        // Preserve the current font size override if the user changed it
+        // independently of the skin (via the Settings slider or volume keys).
+        _selected.value = match.copy(textSizeSp = _selected.value.textSizeSp)
+    }
+
+    /** Change font size without changing the skin. */
+    fun setFontSize(sp: Float) {
+        _selected.value = _selected.value.copy(textSizeSp = sp)
     }
 
     fun current(): TerminalSkin = _selected.value

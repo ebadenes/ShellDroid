@@ -34,6 +34,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import io.shelldroid.core.ui.ThemeMode
 
 /**
  * Settings screen modelled after JuiceSSH's preference layout.
@@ -58,6 +59,7 @@ fun SettingsScreen(
     val state by viewModel.state
 
     var showSkinPicker by remember { mutableStateOf(false) }
+    var showThemeModePicker by remember { mutableStateOf(false) }
 
     if (showSkinPicker) {
         AlertDialog(
@@ -94,6 +96,46 @@ fun SettingsScreen(
         )
     }
 
+    if (showThemeModePicker) {
+        val modes = listOf(
+            ThemeMode.SYSTEM to "Seguir al sistema",
+            ThemeMode.DARK to "Oscuro",
+            ThemeMode.LIGHT to "Claro",
+        )
+        AlertDialog(
+            onDismissRequest = { showThemeModePicker = false },
+            title = { Text("Modo de la app") },
+            text = {
+                Column {
+                    modes.forEach { (mode, label) ->
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable {
+                                    viewModel.setThemeMode(mode)
+                                    showThemeModePicker = false
+                                }
+                                .padding(vertical = 8.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            RadioButton(
+                                selected = state.themeMode == mode,
+                                onClick = {
+                                    viewModel.setThemeMode(mode)
+                                    showThemeModePicker = false
+                                },
+                            )
+                            Text(label, modifier = Modifier.padding(start = 8.dp))
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { showThemeModePicker = false }) { Text("Cerrar") }
+            },
+        )
+    }
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -112,6 +154,24 @@ fun SettingsScreen(
                 .padding(inner)
                 .verticalScroll(rememberScrollState()),
         ) {
+            // ── General ───────────────────────────────────────────
+            SectionHeader("General")
+
+            ListItem(
+                headlineContent = { Text("Modo oscuro / claro") },
+                supportingContent = {
+                    val label = when (state.themeMode) {
+                        ThemeMode.SYSTEM -> "Seguir al sistema"
+                        ThemeMode.DARK -> "Oscuro"
+                        ThemeMode.LIGHT -> "Claro"
+                    }
+                    Text(label)
+                },
+                modifier = Modifier.clickable { showThemeModePicker = true },
+            )
+
+            HorizontalDivider()
+
             // ── Terminal ──────────────────────────────────────────
             SectionHeader("Terminal")
 
