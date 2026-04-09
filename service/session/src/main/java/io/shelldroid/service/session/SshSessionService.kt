@@ -128,7 +128,7 @@ class SshSessionService : LifecycleService() {
         val actionPi = launchPendingIntent(firstHostId)
 
         val builder = NotificationCompat.Builder(this, CHANNEL_ID)
-            .setSmallIcon(android.R.drawable.stat_notify_sync) // TODO polish: ícono propio
+            .setSmallIcon(io.shelldroid.service.session.R.drawable.ic_notification)
             .setContentTitle(title)
             .setContentText(text)
             .setOngoing(true)

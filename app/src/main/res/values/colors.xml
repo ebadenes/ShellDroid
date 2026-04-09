@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<resources>
+
+  
+  <color name="colorBackground">#0A0E1A</color>
+  <color name="colorSurface">#111827</color>
+  <color name="colorSurfaceVariant">#151E2E</color>
+
+  
+  <color name="colorBorder">#1E2D45</color>
+  <color name="colorDivider">#141F30</color>
+
+  
+  <color name="colorAccent">#00C2FF</color>
+  <color name="colorAccentDim">#0A3A52</color>
+  <color name="colorAccentPressed">#009ACC</color>
+
+  
+  <color name="colorTextPrimary">#E2EAF4</color>
+  <color name="colorTextSecondary">#A0B4C8</color>
+  <color name="colorTextMuted">#6B8099</color>
+  <color name="colorTextDisabled">#2E3D50</color>
+
+  
+  <color name="colorSuccess">#00E5A0</color>
+  <color name="colorSuccessDim">#003D2A</color>
+  <color name="colorError">#FF4D6A</color>
+  <color name="colorErrorDim">#3D0010</color>
+  <color name="colorWarning">#FFB830</color>
+  <color name="colorWarningDim">#3D2A00</color>
+
+  
+  <color name="colorTerminalBg">#080C14</color>
+  <color name="colorTerminalCursor">#00C2FF</color>
+  <color name="colorTerminalSelection">#1E4060</color>
+  <color name="colorTerminalPrompt">#00C2FF</color>
+  <color name="colorTerminalCommand">#E2EAF4</color>
+  <color name="colorTerminalOutput">#A0B4C8</color>
+  <color name="colorTerminalError">#FF4D6A</color>
+
+  
+  <color name="colorScrim">#CC0A0E1A</color>
+  <color name="colorRipple">#1A00C2FF</color>
+
+</resources>

@@ -65,7 +65,34 @@ object BuiltInSkins {
         ),
     )
 
-    val DEFAULT: TerminalSkin = SHELLDROID_DARK
+    val ABYSS = TerminalSkin(
+        id = "abyss",
+        name = "Abyss",
+        textSizeSp = 12f,
+        background = 0xff080C14.toInt(),
+        foreground = 0xffE2EAF4.toInt(),
+        cursor = 0xff00C2FF.toInt(),
+        ansi = intArrayOf(
+            0xff0A0E1A.toInt(), // 0 black
+            0xffFF4D6A.toInt(), // 1 red
+            0xff00E5A0.toInt(), // 2 green
+            0xffFFB830.toInt(), // 3 yellow
+            0xff00C2FF.toInt(), // 4 blue
+            0xffA78BFA.toInt(), // 5 magenta
+            0xff22D3EE.toInt(), // 6 cyan
+            0xffE2EAF4.toInt(), // 7 white
+            0xff6B8099.toInt(), // 8 bright black
+            0xffFF7A93.toInt(), // 9 bright red
+            0xff34D399.toInt(), // 10 bright green
+            0xffFFD166.toInt(), // 11 bright yellow
+            0xff38BDF8.toInt(), // 12 bright blue
+            0xffC4B5FD.toInt(), // 13 bright magenta
+            0xff67E8F9.toInt(), // 14 bright cyan
+            0xffF8FAFF.toInt(), // 15 bright white
+        ),
+    )
 
-    val ALL: List<TerminalSkin> = listOf(SHELLDROID_DARK, SOLARIZED_DARK)
+    val DEFAULT: TerminalSkin = ABYSS
+
+    val ALL: List<TerminalSkin> = listOf(ABYSS, SHELLDROID_DARK, SOLARIZED_DARK)
 }
