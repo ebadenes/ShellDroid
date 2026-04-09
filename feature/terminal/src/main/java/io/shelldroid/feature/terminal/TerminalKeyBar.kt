@@ -52,6 +52,9 @@ fun TerminalKeyBar(
     foreground: Color,
     onRequestShowKeyboard: () -> Unit,
     onRequestSnippets: () -> Unit,
+    onPaste: () -> Unit = {},
+    onCopyAll: () -> Unit = {},
+    onClear: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     // Recomposition trigger for sticky highlights. We mirror the
@@ -121,12 +124,12 @@ fun TerminalKeyBar(
         KeyBarButton("~", foreground, false) {
             emulator.dispatchCharacter(0, '~')
         }
-        KeyBarButton("📋", foreground, false) {
-            onRequestSnippets()
-        }
-        KeyBarButton("⌨", foreground, false) {
-            onRequestShowKeyboard()
-        }
+        // ── Utility buttons ──
+        KeyBarButton("📄", foreground, false) { onPaste() }
+        KeyBarButton("📋", foreground, false) { onRequestSnippets() }
+        KeyBarButton("📑", foreground, false) { onCopyAll() }
+        KeyBarButton("🗑", foreground, false) { onClear() }
+        KeyBarButton("⌨", foreground, false) { onRequestShowKeyboard() }
     }
 }
 
