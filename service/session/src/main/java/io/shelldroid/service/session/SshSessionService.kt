@@ -68,6 +68,10 @@ class SshSessionService : LifecycleService() {
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         super.onStartCommand(intent, flags, startId)
+        if (intent?.action == ACTION_DISCONNECT_ALL) {
+            sessionManager.disconnectAll()
+            return START_NOT_STICKY
+        }
         return START_STICKY
     }
 
@@ -140,6 +144,22 @@ class SshSessionService : LifecycleService() {
             )
         }
 
+        // "Desconectar" action — sends ACTION_DISCONNECT_ALL to this
+        // service, which calls sessionManager.disconnectAll() and the
+        // activeCountFlow drops to 0, stopping the service + notification.
+        val disconnectIntent = Intent(this, SshSessionService::class.java).apply {
+            action = ACTION_DISCONNECT_ALL
+        }
+        val disconnectPi = PendingIntent.getService(
+            this, 0, disconnectIntent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+        )
+        builder.addAction(
+            android.R.drawable.ic_menu_close_clear_cancel,
+            "Desconectar",
+            disconnectPi,
+        )
+
         return builder.build()
     }
 
@@ -147,6 +167,7 @@ class SshSessionService : LifecycleService() {
         const val CHANNEL_ID = "ssh_sessions"
         const val CHANNEL_NAME = "Sesiones SSH activas"
         const val NOTIF_ID = 1001
+        const val ACTION_DISCONNECT_ALL = "io.shelldroid.DISCONNECT_ALL"
 
         /**
          * String extra key used to deep-link a notification tap into the

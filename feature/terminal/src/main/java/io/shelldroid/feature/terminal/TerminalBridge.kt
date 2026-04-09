@@ -169,6 +169,12 @@ class TerminalBridge(
                 }
             }
             _state.value = State.Closed
+            // Shell exited — the session is dead. Clean up so the FGS
+            // notification disappears and activeCountFlow drops to 0.
+            val host = hostIdCache
+            if (host != null) {
+                try { sessionManager.disconnect(host) } catch (_: Throwable) {}
+            }
         }
     }
 
