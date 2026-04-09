@@ -57,6 +57,7 @@ import io.shelldroid.core.ui.R as UiR
 @Composable
 fun SettingsScreen(
     onBack: () -> Unit,
+    onOpenKnownHosts: () -> Unit = {},
     viewModel: SettingsViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state
@@ -284,11 +285,9 @@ fun SettingsScreen(
             )
 
             ListItem(
-                headlineContent = { Text(stringResource(UiR.string.settings_clear_known_hosts)) },
-                supportingContent = { Text(stringResource(UiR.string.settings_clear_known_hosts_desc)) },
-                modifier = Modifier.clickable {
-                    viewModel.clearKnownHosts()
-                },
+                headlineContent = { Text(stringResource(UiR.string.manage_known_hosts)) },
+                supportingContent = { Text(stringResource(UiR.string.manage_known_hosts_desc)) },
+                modifier = Modifier.clickable { onOpenKnownHosts() },
             )
 
             HorizontalDivider()

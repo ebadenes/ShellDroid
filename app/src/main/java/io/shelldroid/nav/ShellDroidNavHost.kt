@@ -29,6 +29,7 @@ import io.shelldroid.feature.snippets.SnippetEditScreen
 import io.shelldroid.feature.snippets.SnippetsScreen
 import io.shelldroid.feature.terminal.TerminalLaunchRequest
 import io.shelldroid.feature.terminal.TerminalScreen
+import io.shelldroid.ui.settings.KnownHostsScreen
 import io.shelldroid.ui.settings.SettingsScreen
 
 object Routes {
@@ -52,6 +53,7 @@ object Routes {
     fun portForwardEdit(id: String? = null): String = "portforward/edit?id=${id.orEmpty()}"
 
     const val SETTINGS = "settings"
+    const val KNOWN_HOSTS = "known_hosts"
 }
 
 @EntryPoint
@@ -210,6 +212,12 @@ fun ShellDroidNavHost(navController: NavHostController = rememberNavController()
         }
         composable(Routes.SETTINGS) {
             SettingsScreen(
+                onBack = { navController.popBackStack() },
+                onOpenKnownHosts = { navController.navigate(Routes.KNOWN_HOSTS) },
+            )
+        }
+        composable(Routes.KNOWN_HOSTS) {
+            KnownHostsScreen(
                 onBack = { navController.popBackStack() },
             )
         }
