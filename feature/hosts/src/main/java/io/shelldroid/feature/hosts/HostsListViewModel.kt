@@ -20,6 +20,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import java.util.UUID
 import javax.inject.Inject
 
 @HiltViewModel
@@ -111,6 +112,33 @@ class HostsListViewModel @Inject constructor(
 
     fun delete(host: Host) {
         viewModelScope.launch { repo.delete(host) }
+    }
+
+    fun quickConnect(hostname: String, port: Int, username: String, password: String) {
+        val hostId = "quick-${UUID.randomUUID()}"
+        viewModelScope.launch {
+            _connectState.value = ConnectState.Connecting(hostId)
+            val config = SshConfig(
+                hostId = hostId,
+                hostname = hostname,
+                port = port,
+                username = username,
+                auth = AuthMethod.Password(password.toCharArray()),
+            )
+            val result = sessionManager.connect(config)
+            _connectState.value = if (result.isSuccess) {
+                ConnectState.Connected(hostId)
+            } else {
+                val err = result.exceptionOrNull()
+                val msg = when (err) {
+                    is SshConnectException.HostKeyRejected -> "Host key rechazado"
+                    is SshConnectException.AuthFailed -> "Autenticación falló"
+                    is SshConnectException.NetworkError -> "Error de red: ${err.message}"
+                    else -> err?.message ?: "Error desconocido"
+                }
+                ConnectState.Error(hostId, msg)
+            }
+        }
     }
 
     fun resetConnectState() {
