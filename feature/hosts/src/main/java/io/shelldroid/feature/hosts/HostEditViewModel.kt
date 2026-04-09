@@ -29,6 +29,7 @@ class HostEditViewModel @Inject constructor(
         val port: String = "22",
         val username: String = "",
         val identityId: String? = null,
+        val autoCommand: String = "",
         val saving: Boolean = false,
         val saved: Boolean = false,
         val error: String? = null,
@@ -56,6 +57,7 @@ class HostEditViewModel @Inject constructor(
                 port = h.port.toString(),
                 username = h.username,
                 identityId = h.identityId,
+                autoCommand = h.autoCommand,
             )
         }
     }
@@ -65,6 +67,7 @@ class HostEditViewModel @Inject constructor(
     fun onPort(v: String) { _form.value = _form.value.copy(port = v.filter { it.isDigit() }) }
     fun onUsername(v: String) { _form.value = _form.value.copy(username = v) }
     fun onIdentity(id: String?) { _form.value = _form.value.copy(identityId = id) }
+    fun onAutoCommand(v: String) { _form.value = _form.value.copy(autoCommand = v) }
 
     fun save() {
         val s = _form.value
@@ -84,6 +87,7 @@ class HostEditViewModel @Inject constructor(
                     port = s.port.toInt(),
                     username = s.username.trim(),
                     identityId = s.identityId,
+                    autoCommand = s.autoCommand.trim(),
                     createdAt = now,
                 )
                 repo.upsert(host)

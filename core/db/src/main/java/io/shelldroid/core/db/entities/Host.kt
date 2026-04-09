@@ -1,5 +1,6 @@
 package io.shelldroid.core.db.entities
 
+import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.ForeignKey
 import androidx.room.Index
@@ -31,6 +32,7 @@ data class Host(
     val port: Int = 22,
     val username: String,
     val identityId: String? = null,
+    @ColumnInfo(defaultValue = "") val autoCommand: String = "",
     val createdAt: Long,
     val lastConnectedAt: Long? = null,
 )

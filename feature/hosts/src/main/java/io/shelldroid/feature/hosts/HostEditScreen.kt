@@ -91,6 +91,15 @@ fun HostEditScreen(
                 singleLine = true,
             )
 
+            OutlinedTextField(
+                value = form.autoCommand,
+                onValueChange = viewModel::onAutoCommand,
+                label = { Text(stringResource(UiR.string.auto_command)) },
+                placeholder = { Text(stringResource(UiR.string.auto_command_hint)) },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true,
+            )
+
             ExposedDropdownMenuBox(
                 expanded = dropdownOpen,
                 onExpandedChange = { dropdownOpen = !dropdownOpen },

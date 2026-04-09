@@ -8,6 +8,7 @@ import io.shelldroid.core.db.entities.Host
 import io.shelldroid.core.db.entities.Identity
 import io.shelldroid.core.security.CredentialVault
 import io.shelldroid.core.security.withDecrypted
+import io.shelldroid.core.ssh.PendingAutoCommand
 import io.shelldroid.core.ssh.SshConnectException
 import io.shelldroid.core.ssh.SshSessionManager
 import io.shelldroid.core.ssh.model.AuthMethod
@@ -96,6 +97,9 @@ class HostsListViewModel @Inject constructor(
             val result = sessionManager.connect(config)
             _connectState.value = if (result.isSuccess) {
                 repo.updateLastConnected(host.id, System.currentTimeMillis())
+                if (host.autoCommand.isNotBlank()) {
+                    PendingAutoCommand.set(host.id, host.autoCommand)
+                }
                 ConnectState.Connected(host.id)
             } else {
                 val err = result.exceptionOrNull()
@@ -112,6 +116,18 @@ class HostsListViewModel @Inject constructor(
 
     fun delete(host: Host) {
         viewModelScope.launch { repo.delete(host) }
+    }
+
+    fun clone(host: Host) {
+        viewModelScope.launch {
+            val copy = host.copy(
+                id = UUID.randomUUID().toString(),
+                name = "${host.name} (copia)",
+                createdAt = System.currentTimeMillis(),
+                lastConnectedAt = null,
+            )
+            repo.upsert(copy)
+        }
     }
 
     fun quickConnect(hostname: String, port: Int, username: String, password: String) {

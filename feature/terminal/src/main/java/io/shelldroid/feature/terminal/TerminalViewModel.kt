@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import io.shelldroid.core.db.dao.HostDao
 import io.shelldroid.core.db.entities.Snippet
+import io.shelldroid.core.ssh.PendingAutoCommand
 import io.shelldroid.feature.snippets.data.SnippetRepository
 import io.shelldroid.feature.terminal.skin.TerminalSkin
 import io.shelldroid.feature.terminal.skin.TerminalSkinRepository
@@ -13,6 +14,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -108,6 +110,15 @@ class TerminalViewModel @Inject constructor(
             defaultBackground = background,
             ansiPalette = currentSkin.ansi,
         )
+
+        // Dispatch pending auto-command once the shell is running.
+        val autoCmd = PendingAutoCommand.take(hostId)
+        if (autoCmd != null) {
+            viewModelScope.launch {
+                b.state.first { it is TerminalBridge.State.Running }
+                b.sendInput((autoCmd + "\n").toByteArray(Charsets.UTF_8))
+            }
+        }
     }
 
     /**
