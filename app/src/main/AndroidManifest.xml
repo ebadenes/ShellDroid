@@ -11,6 +11,7 @@
         android:label="ShellDroid"
         android:icon="@mipmap/ic_launcher"
         android:roundIcon="@mipmap/ic_launcher_round"
+        android:theme="@style/Theme.ShellDroid"
         android:allowBackup="false"
         android:dataExtractionRules="@xml/data_extraction_rules"
         android:localeConfig="@xml/locales_config"
