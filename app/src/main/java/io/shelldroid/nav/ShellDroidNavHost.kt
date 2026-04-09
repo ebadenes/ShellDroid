@@ -30,6 +30,7 @@ import io.shelldroid.feature.snippets.SnippetsScreen
 import io.shelldroid.feature.terminal.TerminalLaunchRequest
 import io.shelldroid.feature.terminal.TerminalScreen
 import io.shelldroid.ui.settings.KnownHostsScreen
+import io.shelldroid.ui.settings.LicensesScreen
 import io.shelldroid.ui.settings.SettingsScreen
 
 object Routes {
@@ -54,6 +55,7 @@ object Routes {
 
     const val SETTINGS = "settings"
     const val KNOWN_HOSTS = "known_hosts"
+    const val LICENSES = "licenses"
 }
 
 @EntryPoint
@@ -214,10 +216,16 @@ fun ShellDroidNavHost(navController: NavHostController = rememberNavController()
             SettingsScreen(
                 onBack = { navController.popBackStack() },
                 onOpenKnownHosts = { navController.navigate(Routes.KNOWN_HOSTS) },
+                onOpenLicenses = { navController.navigate(Routes.LICENSES) },
             )
         }
         composable(Routes.KNOWN_HOSTS) {
             KnownHostsScreen(
+                onBack = { navController.popBackStack() },
+            )
+        }
+        composable(Routes.LICENSES) {
+            LicensesScreen(
                 onBack = { navController.popBackStack() },
             )
         }

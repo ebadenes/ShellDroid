@@ -15,8 +15,8 @@ android {
         applicationId = "io.shelldroid"
         minSdk = libs.versions.minSdk.get().toInt()
         targetSdk = libs.versions.targetSdk.get().toInt()
-        versionCode = 1
-        versionName = "0.1.0-alpha"
+        versionCode = 2
+        versionName = "0.2.0-alpha"
         ndk {
             // Align with :core:ssh-native. We only ship 64-bit.
             abiFilters += listOf("arm64-v8a", "x86_64")

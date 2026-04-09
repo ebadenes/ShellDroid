@@ -58,6 +58,7 @@ import io.shelldroid.core.ui.R as UiR
 fun SettingsScreen(
     onBack: () -> Unit,
     onOpenKnownHosts: () -> Unit = {},
+    onOpenLicenses: () -> Unit = {},
     viewModel: SettingsViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state
@@ -303,9 +304,7 @@ fun SettingsScreen(
             ListItem(
                 headlineContent = { Text(stringResource(UiR.string.settings_licenses)) },
                 supportingContent = { Text(stringResource(UiR.string.settings_licenses_desc)) },
-                modifier = Modifier.clickable {
-                    // TODO: open licenses screen or webview
-                },
+                modifier = Modifier.clickable { onOpenLicenses() },
             )
         }
     }
