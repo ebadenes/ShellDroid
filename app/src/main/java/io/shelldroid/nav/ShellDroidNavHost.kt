@@ -29,6 +29,7 @@ import io.shelldroid.feature.snippets.SnippetEditScreen
 import io.shelldroid.feature.snippets.SnippetsScreen
 import io.shelldroid.feature.terminal.TerminalLaunchRequest
 import io.shelldroid.feature.terminal.TerminalScreen
+import io.shelldroid.ui.settings.SettingsScreen
 
 object Routes {
     const val HOSTS = "hosts"
@@ -49,6 +50,8 @@ object Routes {
     const val PORTFORWARDS = "portforwards"
     const val PORTFORWARD_EDIT = "portforward/edit?id={id}"
     fun portForwardEdit(id: String? = null): String = "portforward/edit?id=${id.orEmpty()}"
+
+    const val SETTINGS = "settings"
 }
 
 @EntryPoint
@@ -105,6 +108,7 @@ fun ShellDroidNavHost(navController: NavHostController = rememberNavController()
                 onOpenIdentities = { navController.navigate(Routes.IDENTITIES) },
                 onOpenSnippets = { navController.navigate(Routes.SNIPPETS) },
                 onOpenPortForwards = { navController.navigate(Routes.PORTFORWARDS) },
+                onOpenSettings = { navController.navigate(Routes.SETTINGS) },
                 prompter = null, // mounted at NavHost level
                 viewModel = vm,
             )
@@ -200,6 +204,11 @@ fun ShellDroidNavHost(navController: NavHostController = rememberNavController()
             val hostId = backStack.arguments?.getString("hostId").orEmpty()
             TerminalScreen(
                 hostId = hostId,
+                onBack = { navController.popBackStack() },
+            )
+        }
+        composable(Routes.SETTINGS) {
+            SettingsScreen(
                 onBack = { navController.popBackStack() },
             )
         }

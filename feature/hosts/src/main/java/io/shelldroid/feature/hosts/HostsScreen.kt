@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
@@ -49,6 +50,7 @@ fun HostsScreen(
     onOpenIdentities: () -> Unit = {},
     onOpenSnippets: () -> Unit = {},
     onOpenPortForwards: () -> Unit = {},
+    onOpenSettings: () -> Unit = {},
     prompter: ComposeHostKeyPrompter? = null,
     viewModel: HostsListViewModel = hiltViewModel(),
 ) {
@@ -83,6 +85,9 @@ fun HostsScreen(
                     }
                     IconButton(onClick = onOpenIdentities) {
                         Icon(Icons.Default.Person, contentDescription = "Identities")
+                    }
+                    IconButton(onClick = onOpenSettings) {
+                        Icon(Icons.Default.Settings, contentDescription = "Settings")
                     }
                 },
             )

@@ -27,4 +27,7 @@ interface KnownHostDao {
 
     @Query("UPDATE known_hosts SET lastSeen = :timestamp WHERE id = :id")
     suspend fun updateLastSeen(id: String, timestamp: Long)
+
+    @Query("DELETE FROM known_hosts")
+    suspend fun deleteAll()
 }
