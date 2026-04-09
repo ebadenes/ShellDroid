@@ -86,4 +86,5 @@
     <string name="private_key_pem">Private key (PEM)</string>
     <string name="passphrase_optional">Passphrase (optional)</string>
     <string name="no_snippets_terminal">No snippets. Create them from the Hosts screen.</string>
+    <string name="confirm_delete">Delete \"%1$s\"?</string>
 </resources>

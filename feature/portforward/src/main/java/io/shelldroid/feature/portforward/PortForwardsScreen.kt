@@ -13,6 +13,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.Card
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -24,11 +25,18 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -46,6 +54,26 @@ fun PortForwardsScreen(
     viewModel: PortForwardsListViewModel = hiltViewModel(),
 ) {
     val grouped by viewModel.grouped.collectAsState()
+    var pfToDelete by remember { mutableStateOf<PortForward?>(null) }
+
+    if (pfToDelete != null) {
+        AlertDialog(
+            onDismissRequest = { pfToDelete = null },
+            title = { Text(stringResource(UiR.string.delete)) },
+            text = { Text(stringResource(UiR.string.confirm_delete, labelFor(pfToDelete!!))) },
+            confirmButton = {
+                TextButton(onClick = {
+                    viewModel.delete(pfToDelete!!)
+                    pfToDelete = null
+                }) { Text(stringResource(UiR.string.delete)) }
+            },
+            dismissButton = {
+                TextButton(onClick = { pfToDelete = null }) {
+                    Text(stringResource(UiR.string.cancel))
+                }
+            },
+        )
+    }
 
     Scaffold(
         topBar = {
@@ -87,7 +115,7 @@ fun PortForwardsScreen(
                             PortForwardCard(
                                 pf = pf,
                                 onClick = { onEdit(pf.id) },
-                                onDelete = { viewModel.delete(pf) },
+                                onDelete = { pfToDelete = pf },
                             )
                         }
                     }
@@ -129,6 +157,12 @@ private fun PortForwardCard(
                     text = forwardingString(pf),
                     style = MaterialTheme.typography.bodySmall,
                 )
+            }
+            val clipboardManager = LocalClipboardManager.current
+            IconButton(onClick = {
+                clipboardManager.setText(AnnotatedString(forwardingString(pf)))
+            }) {
+                Icon(Icons.Default.ContentCopy, contentDescription = "Copy")
             }
             IconButton(onClick = onDelete) {
                 Icon(Icons.Default.Delete, contentDescription = "Delete")

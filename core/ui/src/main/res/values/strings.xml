@@ -86,4 +86,5 @@
     <string name="private_key_pem">Clave privada (PEM)</string>
     <string name="passphrase_optional">Passphrase (opcional)</string>
     <string name="no_snippets_terminal">No hay snippets. Crealos desde la pantalla de Hosts.</string>
+    <string name="confirm_delete">¿Eliminar \"%1$s\"?</string>
 </resources>

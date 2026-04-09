@@ -12,6 +12,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.PlayArrow
@@ -24,11 +25,18 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -46,6 +54,27 @@ fun SnippetsScreen(
     viewModel: SnippetsListViewModel = hiltViewModel(),
 ) {
     val snippets by viewModel.snippets.collectAsState()
+    val clipboardManager = LocalClipboardManager.current
+    var snippetToDelete by remember { mutableStateOf<Snippet?>(null) }
+
+    if (snippetToDelete != null) {
+        AlertDialog(
+            onDismissRequest = { snippetToDelete = null },
+            title = { Text(stringResource(UiR.string.delete)) },
+            text = { Text(stringResource(UiR.string.confirm_delete, snippetToDelete!!.name)) },
+            confirmButton = {
+                TextButton(onClick = {
+                    viewModel.delete(snippetToDelete!!)
+                    snippetToDelete = null
+                }) { Text(stringResource(UiR.string.delete)) }
+            },
+            dismissButton = {
+                TextButton(onClick = { snippetToDelete = null }) {
+                    Text(stringResource(UiR.string.cancel))
+                }
+            },
+        )
+    }
 
     Scaffold(
         topBar = {
@@ -93,13 +122,18 @@ fun SnippetsScreen(
                                         overflow = TextOverflow.Ellipsis,
                                     )
                                 }
+                                IconButton(onClick = {
+                                    clipboardManager.setText(AnnotatedString(snippet.command))
+                                }) {
+                                    Icon(Icons.Default.ContentCopy, contentDescription = "Copy")
+                                }
                                 IconButton(onClick = { onRunSnippet(snippet) }) {
                                     Icon(Icons.Default.PlayArrow, contentDescription = "Run")
                                 }
                                 IconButton(onClick = { onEditSnippet(snippet.id) }) {
                                     Icon(Icons.Default.Edit, contentDescription = "Edit")
                                 }
-                                IconButton(onClick = { viewModel.delete(snippet) }) {
+                                IconButton(onClick = { snippetToDelete = snippet }) {
                                     Icon(Icons.Default.Delete, contentDescription = "Delete")
                                 }
                             }

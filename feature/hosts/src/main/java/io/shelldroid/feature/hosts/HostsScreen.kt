@@ -17,6 +17,7 @@ import androidx.compose.material.icons.filled.Settings
 import androidx.compose.ui.res.stringResource
 import io.shelldroid.core.ui.R as UiR
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.automirrored.filled.List
@@ -35,13 +36,20 @@ import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import io.shelldroid.core.db.entities.Host
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import io.shelldroid.feature.hosts.tofu.ComposeHostKeyPrompter
@@ -61,6 +69,27 @@ fun HostsScreen(
     val hosts by viewModel.hosts.collectAsState()
     val connectState by viewModel.connectState.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
+    val clipboardManager = LocalClipboardManager.current
+    var hostToDelete by remember { mutableStateOf<Host?>(null) }
+
+    if (hostToDelete != null) {
+        AlertDialog(
+            onDismissRequest = { hostToDelete = null },
+            title = { Text(stringResource(UiR.string.delete)) },
+            text = { Text(stringResource(UiR.string.confirm_delete, hostToDelete!!.name)) },
+            confirmButton = {
+                TextButton(onClick = {
+                    viewModel.delete(hostToDelete!!)
+                    hostToDelete = null
+                }) { Text(stringResource(UiR.string.delete)) }
+            },
+            dismissButton = {
+                TextButton(onClick = { hostToDelete = null }) {
+                    Text(stringResource(UiR.string.cancel))
+                }
+            },
+        )
+    }
 
     LaunchedEffect(connectState) {
         when (val s = connectState) {
@@ -152,10 +181,15 @@ fun HostsScreen(
                                         strokeWidth = 2.dp,
                                     )
                                 } else {
+                                    IconButton(onClick = {
+                                        clipboardManager.setText(AnnotatedString("${host.username}@${host.hostname}:${host.port}"))
+                                    }) {
+                                        Icon(Icons.Default.ContentCopy, contentDescription = "Copy", modifier = Modifier.size(20.dp))
+                                    }
                                     IconButton(onClick = { onEditHost(host.id) }) {
                                         Icon(Icons.Default.Edit, contentDescription = "Edit", modifier = Modifier.size(20.dp))
                                     }
-                                    IconButton(onClick = { viewModel.delete(host) }) {
+                                    IconButton(onClick = { hostToDelete = host }) {
                                         Icon(Icons.Default.Delete, contentDescription = "Delete", modifier = Modifier.size(20.dp))
                                     }
                                 }
