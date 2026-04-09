@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">ShellDroid</string>
+
+    <string name="hosts">Hosts</string>
+    <string name="no_hosts">No hay hosts. Toca + para agregar.</string>
+    <string name="connect">Conectar</string>
+    <string name="edit">Editar</string>
+    <string name="delete">Eliminar</string>
+    <string name="save">Guardar</string>
+    <string name="cancel">Cancelar</string>
+    <string name="close">Cerrar</string>
+    <string name="back">Atrás</string>
+    <string name="add">Añadir</string>
+
+    <string name="identities">Identidades</string>
+    <string name="snippets">Snippets</string>
+    <string name="port_forwards">Port Forwards</string>
+    <string name="settings">Configuración</string>
+    <string name="terminal">Terminal</string>
+
+    <string name="new_host">Nuevo host</string>
+    <string name="edit_host">Editar host</string>
+    <string name="hostname">Nombre de host</string>
+    <string name="port">Puerto</string>
+    <string name="username">Usuario</string>
+    <string name="name">Nombre</string>
+    <string name="identity">Identidad</string>
+    <string name="password">Contraseña</string>
+    <string name="command">Comando</string>
+
+    <string name="new_snippet">Nuevo snippet</string>
+    <string name="edit_snippet">Editar snippet</string>
+    <string name="no_snippets">No hay snippets. Crea uno desde el menú.</string>
+    <string name="run_snippet">Ejecutar snippet</string>
+
+    <string name="new_portforward">Nuevo port forward</string>
+    <string name="edit_portforward">Editar port forward</string>
+    <string name="no_portforwards">No hay port forwards. Toca + para crear uno.</string>
+
+    <string name="keep_connection_title">¿Mantener la conexión?</string>
+    <string name="keep_connection_body">La sesión SSH puede quedarse activa en segundo plano para reanudarla más rápido, o desconectarse completamente.</string>
+    <string name="keep">Mantener</string>
+    <string name="disconnect">Desconectar</string>
+
+    <string name="settings_general">General</string>
+    <string name="settings_dark_light">Modo oscuro / claro</string>
+    <string name="theme_system">Seguir al sistema</string>
+    <string name="theme_dark">Oscuro</string>
+    <string name="theme_light">Claro</string>
+    <string name="settings_language">Idioma</string>
+    <string name="lang_system">Seguir al sistema</string>
+    <string name="lang_es">Español</string>
+    <string name="lang_en">English</string>
+
+    <string name="settings_terminal">Terminal</string>
+    <string name="settings_theme_colors">Tema / colores</string>
+    <string name="settings_font_size">Tamaño de fuente</string>
+    <string name="settings_keep_screen_on">Mantener pantalla encendida</string>
+    <string name="settings_keep_screen_on_desc">Evita que la pantalla se apague durante una sesión</string>
+
+    <string name="settings_security">Seguridad</string>
+    <string name="settings_pin_lock">Bloqueo con PIN</string>
+    <string name="settings_pin_lock_desc">Requiere PIN o biometría al abrir la app</string>
+    <string name="settings_autolock">Tiempo de auto-bloqueo</string>
+    <string name="settings_clear_known_hosts">Borrar known hosts</string>
+    <string name="settings_clear_known_hosts_desc">Elimina todas las claves de servidor guardadas</string>
+
+    <string name="settings_about">Acerca de</string>
+    <string name="settings_version">Versión %1$s</string>
+    <string name="settings_licenses">Licencias</string>
+    <string name="settings_licenses_desc">GPLv3 · Componentes de código abierto</string>
+
+    <string name="notification_title_active">ShellDroid — %1$d sesión(es)</string>
+    <string name="notification_text_active">%1$d sesión(es) SSH activa(s) · toca para abrir</string>
+    <string name="notification_no_sessions">Sin sesiones activas</string>
+    <string name="notification_open_terminal">Abrir terminal</string>
+    <string name="notification_disconnect">Desconectar</string>
+
+    <string name="zoom_indicator">%1$d sp</string>
+</resources>

@@ -35,6 +35,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import io.shelldroid.core.ui.ThemeMode
+import io.shelldroid.ui.settings.AppLanguage
 
 /**
  * Settings screen modelled after JuiceSSH's preference layout.
@@ -60,6 +61,7 @@ fun SettingsScreen(
 
     var showSkinPicker by remember { mutableStateOf(false) }
     var showThemeModePicker by remember { mutableStateOf(false) }
+    var showLanguagePicker by remember { mutableStateOf(false) }
 
     if (showSkinPicker) {
         AlertDialog(
@@ -136,6 +138,41 @@ fun SettingsScreen(
         )
     }
 
+    if (showLanguagePicker) {
+        AlertDialog(
+            onDismissRequest = { showLanguagePicker = false },
+            title = { Text("Idioma") },
+            text = {
+                Column {
+                    AppLanguage.entries.forEach { lang ->
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable {
+                                    viewModel.setLanguage(lang)
+                                    showLanguagePicker = false
+                                }
+                                .padding(vertical = 8.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            RadioButton(
+                                selected = state.language == lang,
+                                onClick = {
+                                    viewModel.setLanguage(lang)
+                                    showLanguagePicker = false
+                                },
+                            )
+                            Text(lang.label, modifier = Modifier.padding(start = 8.dp))
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { showLanguagePicker = false }) { Text("Cerrar") }
+            },
+        )
+    }
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -168,6 +205,12 @@ fun SettingsScreen(
                     Text(label)
                 },
                 modifier = Modifier.clickable { showThemeModePicker = true },
+            )
+
+            ListItem(
+                headlineContent = { Text("Idioma") },
+                supportingContent = { Text(state.language.label) },
+                modifier = Modifier.clickable { showLanguagePicker = true },
             )
 
             HorizontalDivider()

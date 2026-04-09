@@ -8,6 +8,8 @@ import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import io.shelldroid.core.db.dao.KnownHostDao
+import androidx.appcompat.app.AppCompatDelegate
+import androidx.core.os.LocaleListCompat
 import io.shelldroid.core.ui.AppTheme
 import io.shelldroid.core.ui.ThemeMode
 import io.shelldroid.feature.terminal.skin.BuiltInSkins
@@ -16,10 +18,18 @@ import io.shelldroid.feature.terminal.skin.TerminalSkinRepository
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
+/** Language code: null = system, "es" = Spanish, "en" = English */
+enum class AppLanguage(val code: String?, val label: String) {
+    SYSTEM(null, "System"),
+    ES("es", "Español"),
+    EN("en", "English"),
+}
+
 data class SettingsState(
     val selectedSkinId: String = BuiltInSkins.DEFAULT.id,
     val fontSizeSp: Float = BuiltInSkins.DEFAULT.textSizeSp,
     val themeMode: ThemeMode = ThemeMode.SYSTEM,
+    val language: AppLanguage = AppLanguage.SYSTEM,
     val keepScreenOn: Boolean = false,
     val pinLockEnabled: Boolean = false,
     val autoLockLabel: String = "5 minutos",
@@ -62,6 +72,16 @@ class SettingsViewModel @Inject constructor(
     fun setThemeMode(mode: ThemeMode) {
         _state.value = _state.value.copy(themeMode = mode)
         AppTheme.mode = mode
+    }
+
+    fun setLanguage(lang: AppLanguage) {
+        _state.value = _state.value.copy(language = lang)
+        val locales = if (lang.code != null) {
+            LocaleListCompat.forLanguageTags(lang.code)
+        } else {
+            LocaleListCompat.getEmptyLocaleList()
+        }
+        AppCompatDelegate.setApplicationLocales(locales)
     }
 
     fun setKeepScreenOn(on: Boolean) {

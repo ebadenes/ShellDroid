@@ -10,6 +10,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Add
@@ -75,7 +77,18 @@ fun HostsScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Hosts") },
+                title = {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        // Logo prompt icon
+                        Text(
+                            ">_",
+                            style = MaterialTheme.typography.titleLarge,
+                            color = MaterialTheme.colorScheme.primary,
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("ShellDroid")
+                    }
+                },
                 actions = {
                     IconButton(onClick = onOpenSnippets) {
                         Icon(Icons.AutoMirrored.Filled.List, contentDescription = "Snippets")
@@ -111,38 +124,37 @@ fun HostsScreen(
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     items(hosts, key = { it.id }) { host ->
-                        Card(modifier = Modifier.fillMaxWidth()) {
-                            Column(Modifier.padding(12.dp)) {
-                                Text(host.name, style = MaterialTheme.typography.titleMedium)
-                                Text(
-                                    "${host.username}@${host.hostname}:${host.port}",
-                                    style = MaterialTheme.typography.bodySmall,
-                                )
-                                Row(
-                                    Modifier.fillMaxWidth().padding(top = 8.dp),
-                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                    verticalAlignment = Alignment.CenterVertically,
-                                ) {
-                                    val connecting = (connectState as? HostsListViewModel.ConnectState.Connecting)
-                                        ?.hostId == host.id
-                                    OutlinedButton(
-                                        onClick = { viewModel.connect(host.id) },
-                                        enabled = !connecting,
-                                    ) {
-                                        if (connecting) {
-                                            CircularProgressIndicator(
-                                                modifier = Modifier.size(16.dp),
-                                                strokeWidth = 2.dp,
-                                            )
-                                        } else {
-                                            Text("Conectar")
-                                        }
-                                    }
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            onClick = { viewModel.connect(host.id) },
+                        ) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 12.dp, vertical = 8.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(host.name, style = MaterialTheme.typography.titleMedium)
+                                    Text(
+                                        "${host.username}@${host.hostname}:${host.port}",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    )
+                                }
+                                val connecting = (connectState as? HostsListViewModel.ConnectState.Connecting)
+                                    ?.hostId == host.id
+                                if (connecting) {
+                                    CircularProgressIndicator(
+                                        modifier = Modifier.size(20.dp),
+                                        strokeWidth = 2.dp,
+                                    )
+                                } else {
                                     IconButton(onClick = { onEditHost(host.id) }) {
-                                        Icon(Icons.Default.Edit, contentDescription = "Edit")
+                                        Icon(Icons.Default.Edit, contentDescription = "Edit", modifier = Modifier.size(20.dp))
                                     }
                                     IconButton(onClick = { viewModel.delete(host) }) {
-                                        Icon(Icons.Default.Delete, contentDescription = "Delete")
+                                        Icon(Icons.Default.Delete, contentDescription = "Delete", modifier = Modifier.size(20.dp))
                                     }
                                 }
                             }

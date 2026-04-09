@@ -94,5 +94,5 @@ object BuiltInSkins {
 
     val DEFAULT: TerminalSkin = ABYSS
 
-    val ALL: List<TerminalSkin> = listOf(ABYSS, SHELLDROID_DARK, SOLARIZED_DARK)
+    val ALL: List<TerminalSkin> = listOf(ABYSS, SOLARIZED_DARK)
 }
