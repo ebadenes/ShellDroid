@@ -34,8 +34,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import io.shelldroid.core.ui.R as UiR
 import io.shelldroid.core.db.PortForwardType
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -59,7 +61,7 @@ fun PortForwardEditScreen(
         topBar = {
             TopAppBar(
                 title = {
-                    Text(if (portForwardId == null) "Nuevo port forward" else "Editar port forward")
+                    Text(if (portForwardId == null) stringResource(UiR.string.new_portforward) else stringResource(UiR.string.edit_portforward))
                 },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
@@ -85,9 +87,9 @@ fun PortForwardEditScreen(
                 val selected = hosts.firstOrNull { it.id == form.hostId }
                 OutlinedTextField(
                     readOnly = true,
-                    value = selected?.name ?: "(elegí un host)",
+                    value = selected?.name ?: stringResource(UiR.string.choose_host),
                     onValueChange = {},
-                    label = { Text("Host") },
+                    label = { Text(stringResource(UiR.string.host)) },
                     trailingIcon = {
                         ExposedDropdownMenuDefaults.TrailingIcon(expanded = hostDropdownOpen)
                     },
@@ -129,7 +131,7 @@ fun PortForwardEditScreen(
             OutlinedTextField(
                 value = form.sourcePort,
                 onValueChange = viewModel::onSourcePort,
-                label = { Text("Puerto origen") },
+                label = { Text(stringResource(UiR.string.source_port)) },
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                 isError = form.sourcePortError != null,
                 supportingText = {
@@ -143,7 +145,7 @@ fun PortForwardEditScreen(
                 OutlinedTextField(
                     value = form.destHost,
                     onValueChange = viewModel::onDestHost,
-                    label = { Text("Host destino") },
+                    label = { Text(stringResource(UiR.string.dest_host)) },
                     isError = form.destHostError != null,
                     supportingText = {
                         form.destHostError?.let {
@@ -156,7 +158,7 @@ fun PortForwardEditScreen(
                 OutlinedTextField(
                     value = form.destPort,
                     onValueChange = viewModel::onDestPort,
-                    label = { Text("Puerto destino") },
+                    label = { Text(stringResource(UiR.string.dest_port)) },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                     isError = form.destPortError != null,
                     supportingText = {
@@ -178,7 +180,7 @@ fun PortForwardEditScreen(
                 enabled = form.isValid && !form.saving,
                 modifier = Modifier.fillMaxWidth(),
             ) {
-                Text(if (form.saving) "Guardando..." else "Guardar")
+                Text(if (form.saving) stringResource(UiR.string.saving) else stringResource(UiR.string.save))
             }
         }
     }

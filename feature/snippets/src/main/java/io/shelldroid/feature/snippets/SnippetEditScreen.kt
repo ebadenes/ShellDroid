@@ -24,8 +24,10 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import io.shelldroid.core.ui.R as UiR
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -43,13 +45,13 @@ fun SnippetEditScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(if (snippetId == null) "Nuevo snippet" else "Editar snippet") },
+                title = { Text(if (snippetId == null) stringResource(UiR.string.new_snippet) else stringResource(UiR.string.edit_snippet)) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                     }
                 },
-                actions = { TextButton(onClick = onBack) { Text("Cancelar") } },
+                actions = { TextButton(onClick = onBack) { Text(stringResource(UiR.string.cancel)) } },
             )
         },
     ) { padding ->
@@ -64,14 +66,14 @@ fun SnippetEditScreen(
             OutlinedTextField(
                 value = form.name,
                 onValueChange = viewModel::onName,
-                label = { Text("Nombre") },
+                label = { Text(stringResource(UiR.string.name_label)) },
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true,
             )
             OutlinedTextField(
                 value = form.command,
                 onValueChange = viewModel::onCommand,
-                label = { Text("Comando") },
+                label = { Text(stringResource(UiR.string.command)) },
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = false,
                 minLines = 3,
@@ -87,7 +89,7 @@ fun SnippetEditScreen(
                 enabled = form.isValid && !form.saving,
                 modifier = Modifier.fillMaxWidth(),
             ) {
-                Text(if (form.saving) "Guardando..." else "Guardar")
+                Text(if (form.saving) stringResource(UiR.string.saving) else stringResource(UiR.string.save))
             }
         }
     }

@@ -30,8 +30,10 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import io.shelldroid.core.ui.R as UiR
 import io.shelldroid.core.db.entities.Snippet
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -48,7 +50,7 @@ fun SnippetsScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Snippets") },
+                title = { Text(stringResource(UiR.string.snippets)) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
@@ -65,7 +67,7 @@ fun SnippetsScreen(
         Box(Modifier.fillMaxSize().padding(padding)) {
             if (snippets.isEmpty()) {
                 Text(
-                    "No hay snippets. Tocá + para crear uno.",
+                    stringResource(UiR.string.no_snippets),
                     modifier = Modifier.align(Alignment.Center),
                 )
             } else {

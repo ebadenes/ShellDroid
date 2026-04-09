@@ -11,16 +11,27 @@
     <string name="close">Close</string>
     <string name="back">Back</string>
     <string name="add">Add</string>
+
     <string name="identities">Identities</string>
     <string name="no_identities">No identities yet. Tap + to add one.</string>
-    <string name="snippets">Snippets</string>
-    <string name="port_forwards">Port Forwards</string>
-    <string name="settings">Settings</string>
-    <string name="terminal">Terminal</string>
-    <string name="new_host">New host</string>
-    <string name="edit_host">Edit host</string>
     <string name="new_identity">New identity</string>
     <string name="edit_identity">Edit identity</string>
+
+    <string name="snippets">Snippets</string>
+    <string name="no_snippets">No snippets yet. Create one from the menu.</string>
+    <string name="new_snippet">New snippet</string>
+    <string name="edit_snippet">Edit snippet</string>
+
+    <string name="port_forwards">Port Forwards</string>
+    <string name="no_portforwards">No port forwards yet. Tap + to create one.</string>
+    <string name="new_portforward">New port forward</string>
+    <string name="edit_portforward">Edit port forward</string>
+
+    <string name="terminal">Terminal</string>
+    <string name="settings">Settings</string>
+
+    <string name="new_host">New host</string>
+    <string name="edit_host">Edit host</string>
     <string name="hostname">Hostname</string>
     <string name="port">Port</string>
     <string name="username">Username</string>
@@ -28,8 +39,51 @@
     <string name="identity">Identity</string>
     <string name="password">Password</string>
     <string name="command">Command</string>
+
     <string name="keep_title">Keep the connection?</string>
     <string name="keep_body">The SSH session can stay active in the background for faster reconnection, or disconnect completely.</string>
     <string name="keep">Keep</string>
     <string name="disconnect">Disconnect</string>
+
+    <string name="settings_general">General</string>
+    <string name="settings_dark_light">Dark / Light mode</string>
+    <string name="theme_system">Follow system</string>
+    <string name="theme_dark">Dark</string>
+    <string name="theme_light">Light</string>
+    <string name="settings_language">Language</string>
+
+    <string name="settings_terminal">Terminal</string>
+    <string name="settings_theme_colors">Theme / colors</string>
+    <string name="settings_font_size">Font size</string>
+    <string name="settings_keep_screen_on">Keep screen on</string>
+    <string name="settings_keep_screen_on_desc">Prevents the screen from turning off during a session</string>
+
+    <string name="settings_security">Security</string>
+    <string name="settings_pin_lock">PIN lock</string>
+    <string name="settings_pin_lock_desc">Require PIN or biometrics when opening the app</string>
+    <string name="settings_autolock">Auto-lock timeout</string>
+    <string name="settings_autolock_5min">5 minutes</string>
+    <string name="settings_clear_known_hosts">Clear known hosts</string>
+    <string name="settings_clear_known_hosts_desc">Remove all saved server keys</string>
+
+    <string name="settings_about">About</string>
+    <string name="settings_licenses">Licenses</string>
+    <string name="settings_licenses_desc">GPLv3 · Open source components</string>
+
+    <string name="app_mode">App mode</string>
+    <string name="connected">Connected</string>
+    <string name="source_port">Source port</string>
+    <string name="dest_host">Destination host</string>
+    <string name="dest_port">Destination port</string>
+    <string name="host">Host</string>
+    <string name="type">Type</string>
+    <string name="saving">Saving…</string>
+    <string name="terminal_theme">Terminal theme</string>
+    <string name="no_identity">(no identity)</string>
+    <string name="choose_host">(choose a host)</string>
+    <string name="unknown_host">(unknown host)</string>
+    <string name="version_format">Version %s</string>
+    <string name="private_key_pem">Private key (PEM)</string>
+    <string name="passphrase_optional">Passphrase (optional)</string>
+    <string name="no_snippets_terminal">No snippets. Create them from the Hosts screen.</string>
 </resources>

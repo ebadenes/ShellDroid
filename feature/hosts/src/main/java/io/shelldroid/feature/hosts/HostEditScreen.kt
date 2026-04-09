@@ -27,8 +27,10 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import io.shelldroid.core.ui.R as UiR
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -47,8 +49,8 @@ fun HostEditScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(if (hostId == null) "Nuevo host" else "Editar host") },
-                actions = { TextButton(onClick = onDone) { Text("Cancelar") } },
+                title = { Text(if (hostId == null) stringResource(UiR.string.new_host) else stringResource(UiR.string.edit_host)) },
+                actions = { TextButton(onClick = onDone) { Text(stringResource(UiR.string.cancel)) } },
             )
         },
     ) { padding ->
@@ -63,28 +65,28 @@ fun HostEditScreen(
             OutlinedTextField(
                 value = form.name,
                 onValueChange = viewModel::onName,
-                label = { Text("Nombre") },
+                label = { Text(stringResource(UiR.string.name_label)) },
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true,
             )
             OutlinedTextField(
                 value = form.hostname,
                 onValueChange = viewModel::onHostname,
-                label = { Text("Hostname") },
+                label = { Text(stringResource(UiR.string.hostname)) },
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true,
             )
             OutlinedTextField(
                 value = form.port,
                 onValueChange = viewModel::onPort,
-                label = { Text("Puerto") },
+                label = { Text(stringResource(UiR.string.port)) },
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true,
             )
             OutlinedTextField(
                 value = form.username,
                 onValueChange = viewModel::onUsername,
-                label = { Text("Usuario") },
+                label = { Text(stringResource(UiR.string.username)) },
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true,
             )
@@ -96,9 +98,9 @@ fun HostEditScreen(
                 val selected = identities.firstOrNull { it.id == form.identityId }
                 OutlinedTextField(
                     readOnly = true,
-                    value = selected?.name ?: "(sin identity)",
+                    value = selected?.name ?: stringResource(UiR.string.no_identity),
                     onValueChange = {},
-                    label = { Text("Identity") },
+                    label = { Text(stringResource(UiR.string.identity)) },
                     trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = dropdownOpen) },
                     modifier = Modifier.menuAnchor().fillMaxWidth(),
                 )
@@ -107,7 +109,7 @@ fun HostEditScreen(
                     onDismissRequest = { dropdownOpen = false },
                 ) {
                     DropdownMenuItem(
-                        text = { Text("(sin identity)") },
+                        text = { Text(stringResource(UiR.string.no_identity)) },
                         onClick = {
                             viewModel.onIdentity(null)
                             dropdownOpen = false
@@ -134,7 +136,7 @@ fun HostEditScreen(
                 enabled = form.isValid && !form.saving,
                 modifier = Modifier.fillMaxWidth(),
             ) {
-                Text(if (form.saving) "Guardando..." else "Guardar")
+                Text(if (form.saving) stringResource(UiR.string.saving) else stringResource(UiR.string.save))
             }
         }
     }

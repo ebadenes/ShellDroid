@@ -11,16 +11,27 @@
     <string name="close">Cerrar</string>
     <string name="back">Atrás</string>
     <string name="add">Añadir</string>
+
     <string name="identities">Identidades</string>
     <string name="no_identities">No hay identidades. Toca + para agregar.</string>
-    <string name="snippets">Snippets</string>
-    <string name="port_forwards">Port Forwards</string>
-    <string name="settings">Configuración</string>
-    <string name="terminal">Terminal</string>
-    <string name="new_host">Nuevo host</string>
-    <string name="edit_host">Editar host</string>
     <string name="new_identity">Nueva identidad</string>
     <string name="edit_identity">Editar identidad</string>
+
+    <string name="snippets">Snippets</string>
+    <string name="no_snippets">No hay snippets. Crea uno desde el menú.</string>
+    <string name="new_snippet">Nuevo snippet</string>
+    <string name="edit_snippet">Editar snippet</string>
+
+    <string name="port_forwards">Port Forwards</string>
+    <string name="no_portforwards">No hay port forwards. Toca + para crear uno.</string>
+    <string name="new_portforward">Nuevo port forward</string>
+    <string name="edit_portforward">Editar port forward</string>
+
+    <string name="terminal">Terminal</string>
+    <string name="settings">Configuración</string>
+
+    <string name="new_host">Nuevo host</string>
+    <string name="edit_host">Editar host</string>
     <string name="hostname">Nombre de host</string>
     <string name="port">Puerto</string>
     <string name="username">Usuario</string>
@@ -28,8 +39,51 @@
     <string name="identity">Identidad</string>
     <string name="password">Contraseña</string>
     <string name="command">Comando</string>
+
     <string name="keep_title">¿Mantener la conexión?</string>
     <string name="keep_body">La sesión SSH puede quedarse activa en segundo plano para reanudarla más rápido, o desconectarse completamente.</string>
     <string name="keep">Mantener</string>
     <string name="disconnect">Desconectar</string>
+
+    <string name="settings_general">General</string>
+    <string name="settings_dark_light">Modo oscuro / claro</string>
+    <string name="theme_system">Seguir al sistema</string>
+    <string name="theme_dark">Oscuro</string>
+    <string name="theme_light">Claro</string>
+    <string name="settings_language">Idioma</string>
+
+    <string name="settings_terminal">Terminal</string>
+    <string name="settings_theme_colors">Tema / colores</string>
+    <string name="settings_font_size">Tamaño de fuente</string>
+    <string name="settings_keep_screen_on">Mantener pantalla encendida</string>
+    <string name="settings_keep_screen_on_desc">Evita que la pantalla se apague durante una sesión</string>
+
+    <string name="settings_security">Seguridad</string>
+    <string name="settings_pin_lock">Bloqueo con PIN</string>
+    <string name="settings_pin_lock_desc">Requiere PIN o biometría al abrir la app</string>
+    <string name="settings_autolock">Tiempo de auto-bloqueo</string>
+    <string name="settings_autolock_5min">5 minutos</string>
+    <string name="settings_clear_known_hosts">Borrar known hosts</string>
+    <string name="settings_clear_known_hosts_desc">Elimina todas las claves de servidor guardadas</string>
+
+    <string name="settings_about">Acerca de</string>
+    <string name="settings_licenses">Licencias</string>
+    <string name="settings_licenses_desc">GPLv3 · Componentes de código abierto</string>
+
+    <string name="app_mode">Modo de la app</string>
+    <string name="connected">Conectado</string>
+    <string name="source_port">Puerto origen</string>
+    <string name="dest_host">Host destino</string>
+    <string name="dest_port">Puerto destino</string>
+    <string name="host">Host</string>
+    <string name="type">Tipo</string>
+    <string name="saving">Guardando…</string>
+    <string name="terminal_theme">Tema del terminal</string>
+    <string name="no_identity">(sin identity)</string>
+    <string name="choose_host">(elegí un host)</string>
+    <string name="unknown_host">(host desconocido)</string>
+    <string name="version_format">Versión %s</string>
+    <string name="private_key_pem">Clave privada (PEM)</string>
+    <string name="passphrase_optional">Passphrase (opcional)</string>
+    <string name="no_snippets_terminal">No hay snippets. Crealos desde la pantalla de Hosts.</string>
 </resources>

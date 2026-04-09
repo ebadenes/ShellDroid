@@ -37,7 +37,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.hilt.navigation.compose.hiltViewModel
 import io.shelldroid.core.ui.ThemeMode
 import io.shelldroid.ui.settings.AppLanguage
-import io.shelldroid.R
+import io.shelldroid.core.ui.R as UiR
 
 /**
  * Settings screen modelled after JuiceSSH's preference layout.
@@ -68,7 +68,7 @@ fun SettingsScreen(
     if (showSkinPicker) {
         AlertDialog(
             onDismissRequest = { showSkinPicker = false },
-            title = { Text("Tema del terminal") },
+            title = { Text(stringResource(UiR.string.terminal_theme)) },
             text = {
                 Column {
                     viewModel.availableSkins.forEach { skin ->
@@ -95,20 +95,20 @@ fun SettingsScreen(
                 }
             },
             confirmButton = {
-                TextButton(onClick = { showSkinPicker = false }) { Text("Cerrar") }
+                TextButton(onClick = { showSkinPicker = false }) { Text(stringResource(UiR.string.close)) }
             },
         )
     }
 
     if (showThemeModePicker) {
         val modes = listOf(
-            ThemeMode.SYSTEM to "Seguir al sistema",
-            ThemeMode.DARK to "Oscuro",
-            ThemeMode.LIGHT to "Claro",
+            ThemeMode.SYSTEM to stringResource(UiR.string.theme_system),
+            ThemeMode.DARK to stringResource(UiR.string.theme_dark),
+            ThemeMode.LIGHT to stringResource(UiR.string.theme_light),
         )
         AlertDialog(
             onDismissRequest = { showThemeModePicker = false },
-            title = { Text("Modo de la app") },
+            title = { Text(stringResource(UiR.string.app_mode)) },
             text = {
                 Column {
                     modes.forEach { (mode, label) ->
@@ -135,7 +135,7 @@ fun SettingsScreen(
                 }
             },
             confirmButton = {
-                TextButton(onClick = { showThemeModePicker = false }) { Text("Cerrar") }
+                TextButton(onClick = { showThemeModePicker = false }) { Text(stringResource(UiR.string.close)) }
             },
         )
     }
@@ -143,7 +143,7 @@ fun SettingsScreen(
     if (showLanguagePicker) {
         AlertDialog(
             onDismissRequest = { showLanguagePicker = false },
-            title = { Text("Idioma") },
+            title = { Text(stringResource(UiR.string.settings_language)) },
             text = {
                 Column {
                     AppLanguage.entries.forEach { lang ->
@@ -170,7 +170,7 @@ fun SettingsScreen(
                 }
             },
             confirmButton = {
-                TextButton(onClick = { showLanguagePicker = false }) { Text("Cerrar") }
+                TextButton(onClick = { showLanguagePicker = false }) { Text(stringResource(UiR.string.close)) }
             },
         )
     }
@@ -178,7 +178,7 @@ fun SettingsScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(stringResource(R.string.settings)) },
+                title = { Text(stringResource(UiR.string.settings)) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back")
@@ -194,15 +194,15 @@ fun SettingsScreen(
                 .verticalScroll(rememberScrollState()),
         ) {
             // ── General ───────────────────────────────────────────
-            SectionHeader("General")
+            SectionHeader(stringResource(UiR.string.settings_general))
 
             ListItem(
-                headlineContent = { Text("Modo oscuro / claro") },
+                headlineContent = { Text(stringResource(UiR.string.settings_dark_light)) },
                 supportingContent = {
                     val label = when (state.themeMode) {
-                        ThemeMode.SYSTEM -> "Seguir al sistema"
-                        ThemeMode.DARK -> "Oscuro"
-                        ThemeMode.LIGHT -> "Claro"
+                        ThemeMode.SYSTEM -> stringResource(UiR.string.theme_system)
+                        ThemeMode.DARK -> stringResource(UiR.string.theme_dark)
+                        ThemeMode.LIGHT -> stringResource(UiR.string.theme_light)
                     }
                     Text(label)
                 },
@@ -210,7 +210,7 @@ fun SettingsScreen(
             )
 
             ListItem(
-                headlineContent = { Text("Idioma") },
+                headlineContent = { Text(stringResource(UiR.string.settings_language)) },
                 supportingContent = { Text(state.language.label) },
                 modifier = Modifier.clickable { showLanguagePicker = true },
             )
@@ -218,10 +218,10 @@ fun SettingsScreen(
             HorizontalDivider()
 
             // ── Terminal ──────────────────────────────────────────
-            SectionHeader("Terminal")
+            SectionHeader(stringResource(UiR.string.settings_terminal))
 
             ListItem(
-                headlineContent = { Text("Tema / colores") },
+                headlineContent = { Text(stringResource(UiR.string.settings_theme_colors)) },
                 supportingContent = {
                     val name = viewModel.availableSkins
                         .firstOrNull { it.id == state.selectedSkinId }?.name ?: "—"
@@ -231,7 +231,7 @@ fun SettingsScreen(
             )
 
             ListItem(
-                headlineContent = { Text("Tamaño de fuente") },
+                headlineContent = { Text(stringResource(UiR.string.settings_font_size)) },
                 supportingContent = { Text("${state.fontSizeSp.toInt()} sp") },
             )
             Slider(
@@ -243,8 +243,8 @@ fun SettingsScreen(
             )
 
             ListItem(
-                headlineContent = { Text("Mantener pantalla encendida") },
-                supportingContent = { Text("Evita que la pantalla se apague durante una sesión") },
+                headlineContent = { Text(stringResource(UiR.string.settings_keep_screen_on)) },
+                supportingContent = { Text(stringResource(UiR.string.settings_keep_screen_on_desc)) },
                 trailingContent = {
                     Switch(
                         checked = state.keepScreenOn,
@@ -259,11 +259,11 @@ fun SettingsScreen(
             HorizontalDivider()
 
             // ── Seguridad ─────────────────────────────────────────
-            SectionHeader("Seguridad")
+            SectionHeader(stringResource(UiR.string.settings_security))
 
             ListItem(
-                headlineContent = { Text("Bloqueo con PIN") },
-                supportingContent = { Text("Requiere PIN o biometría al abrir la app") },
+                headlineContent = { Text(stringResource(UiR.string.settings_pin_lock)) },
+                supportingContent = { Text(stringResource(UiR.string.settings_pin_lock_desc)) },
                 trailingContent = {
                     Switch(
                         checked = state.pinLockEnabled,
@@ -276,7 +276,7 @@ fun SettingsScreen(
             )
 
             ListItem(
-                headlineContent = { Text("Tiempo de auto-bloqueo") },
+                headlineContent = { Text(stringResource(UiR.string.settings_autolock)) },
                 supportingContent = { Text(state.autoLockLabel) },
                 modifier = Modifier.clickable {
                     // TODO: show picker dialog for auto-lock timeout
@@ -284,8 +284,8 @@ fun SettingsScreen(
             )
 
             ListItem(
-                headlineContent = { Text("Borrar known hosts") },
-                supportingContent = { Text("Elimina todas las claves de servidor guardadas") },
+                headlineContent = { Text(stringResource(UiR.string.settings_clear_known_hosts)) },
+                supportingContent = { Text(stringResource(UiR.string.settings_clear_known_hosts_desc)) },
                 modifier = Modifier.clickable {
                     viewModel.clearKnownHosts()
                 },
@@ -294,16 +294,16 @@ fun SettingsScreen(
             HorizontalDivider()
 
             // ── Acerca de ─────────────────────────────────────────
-            SectionHeader("Acerca de")
+            SectionHeader(stringResource(UiR.string.settings_about))
 
             ListItem(
-                headlineContent = { Text("ShellDroid") },
-                supportingContent = { Text("Versión ${state.appVersion}") },
+                headlineContent = { Text(stringResource(UiR.string.app_name)) },
+                supportingContent = { Text(stringResource(UiR.string.version_format, state.appVersion)) },
             )
 
             ListItem(
-                headlineContent = { Text("Licencias") },
-                supportingContent = { Text("GPLv3 · Componentes de código abierto") },
+                headlineContent = { Text(stringResource(UiR.string.settings_licenses)) },
+                supportingContent = { Text(stringResource(UiR.string.settings_licenses_desc)) },
                 modifier = Modifier.clickable {
                     // TODO: open licenses screen or webview
                 },

@@ -202,10 +202,10 @@ fun TerminalScreen(
     if (showSnippetPicker) {
         AlertDialog(
             onDismissRequest = { showSnippetPicker = false },
-            title = { Text("Snippets") },
+            title = { Text(stringResource(UiR.string.snippets)) },
             text = {
                 if (snippets.isEmpty()) {
-                    Text("No hay snippets. Crealos desde la pantalla de Hosts.")
+                    Text(stringResource(UiR.string.no_snippets_terminal))
                 } else {
                     LazyColumn(modifier = Modifier.heightIn(max = 300.dp)) {
                         items(snippets, key = { it.id }) { snippet ->
@@ -229,7 +229,7 @@ fun TerminalScreen(
             },
             confirmButton = {
                 TextButton(onClick = { showSnippetPicker = false }) {
-                    Text("Cerrar")
+                    Text(stringResource(UiR.string.close))
                 }
             },
         )

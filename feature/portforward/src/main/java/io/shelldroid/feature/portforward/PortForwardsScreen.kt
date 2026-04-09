@@ -30,8 +30,10 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import io.shelldroid.core.ui.R as UiR
 import io.shelldroid.core.db.PortForwardType
 import io.shelldroid.core.db.entities.PortForward
 
@@ -48,7 +50,7 @@ fun PortForwardsScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Port forwards") },
+                title = { Text(stringResource(UiR.string.port_forwards)) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
@@ -65,7 +67,7 @@ fun PortForwardsScreen(
         Box(Modifier.fillMaxSize().padding(padding)) {
             if (grouped.isEmpty()) {
                 Text(
-                    "No hay port forwards. Tocá + para crear uno.",
+                    stringResource(UiR.string.no_portforwards),
                     modifier = Modifier.align(Alignment.Center),
                 )
             } else {
@@ -76,7 +78,7 @@ fun PortForwardsScreen(
                     grouped.forEach { group ->
                         item(key = "header-${group.host?.id ?: "unknown"}") {
                             Text(
-                                text = group.host?.name ?: "(host desconocido)",
+                                text = group.host?.name ?: stringResource(UiR.string.unknown_host),
                                 style = MaterialTheme.typography.titleSmall,
                                 modifier = Modifier.padding(start = 4.dp, top = 8.dp),
                             )

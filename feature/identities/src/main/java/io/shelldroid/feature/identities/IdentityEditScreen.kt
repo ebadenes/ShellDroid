@@ -27,9 +27,11 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import io.shelldroid.core.ui.R as UiR
 import io.shelldroid.core.db.AuthType
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -48,8 +50,8 @@ fun IdentityEditScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(if (identityId == null) "Nueva identity" else "Editar identity") },
-                actions = { TextButton(onClick = onDone) { Text("Cancelar") } },
+                title = { Text(if (identityId == null) stringResource(UiR.string.new_identity) else stringResource(UiR.string.edit_identity)) },
+                actions = { TextButton(onClick = onDone) { Text(stringResource(UiR.string.cancel)) } },
             )
         },
     ) { padding ->
@@ -64,7 +66,7 @@ fun IdentityEditScreen(
             OutlinedTextField(
                 value = form.name,
                 onValueChange = viewModel::onName,
-                label = { Text("Nombre") },
+                label = { Text(stringResource(UiR.string.name_label)) },
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true,
             )
@@ -77,7 +79,7 @@ fun IdentityEditScreen(
                     readOnly = true,
                     value = form.authType.name,
                     onValueChange = {},
-                    label = { Text("Tipo") },
+                    label = { Text(stringResource(UiR.string.type)) },
                     trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = typeOpen) },
                     modifier = Modifier.menuAnchor().fillMaxWidth(),
                 )
@@ -101,7 +103,7 @@ fun IdentityEditScreen(
                 value = form.secret,
                 onValueChange = viewModel::onSecret,
                 label = {
-                    Text(if (form.authType == AuthType.PASSWORD) "Contraseña" else "Clave privada (PEM)")
+                    Text(if (form.authType == AuthType.PASSWORD) stringResource(UiR.string.password) else stringResource(UiR.string.private_key_pem))
                 },
                 visualTransformation = PasswordVisualTransformation(),
                 modifier = Modifier.fillMaxWidth(),
@@ -112,7 +114,7 @@ fun IdentityEditScreen(
                 OutlinedTextField(
                     value = form.passphrase,
                     onValueChange = viewModel::onPassphrase,
-                    label = { Text("Passphrase (opcional)") },
+                    label = { Text(stringResource(UiR.string.passphrase_optional)) },
                     visualTransformation = PasswordVisualTransformation(),
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true,
@@ -128,7 +130,7 @@ fun IdentityEditScreen(
                 enabled = form.isValid && !form.saving,
                 modifier = Modifier.fillMaxWidth(),
             ) {
-                Text(if (form.saving) "Guardando..." else "Guardar")
+                Text(if (form.saving) stringResource(UiR.string.saving) else stringResource(UiR.string.save))
             }
         }
     }
