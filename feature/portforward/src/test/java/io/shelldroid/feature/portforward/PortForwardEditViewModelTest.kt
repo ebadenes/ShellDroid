@@ -49,7 +49,7 @@ class PortForwardEditViewModelTest {
         hostDao: HostDao = mockk<HostDao>().apply {
             every { observeAll(any()) } returns flowOf(
                 listOf(
-                    Host("h1", "u1", "server", "example.com", 22, "root", null, 0L),
+                    Host(id = "h1", userId = "u1", name = "server", hostname = "example.com", port = 22, username = "root", identityId = null, createdAt = 0L),
                 ),
             )
         },

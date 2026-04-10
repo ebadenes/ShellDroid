@@ -92,7 +92,7 @@ class HostsListViewModelTest {
     }
 
     @Test
-    fun `connect with missing identity returns Error`() = runTest {
+    fun `connect with missing identity prompts for password`() = runTest {
         val repo = mockk<HostRepository>()
         val identityRepo = mockk<IdentityRepository>()
         val mgr = mockk<SshSessionManager>()
@@ -106,7 +106,7 @@ class HostsListViewModelTest {
         advanceUntilIdle()
 
         val state = vm.connectState.value
-        assertThat(state).isInstanceOf(HostsListViewModel.ConnectState.Error::class.java)
+        assertThat(state).isInstanceOf(HostsListViewModel.ConnectState.NeedsPassword::class.java)
     }
 
     @Test
