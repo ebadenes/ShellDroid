@@ -101,6 +101,15 @@ fun TerminalScreen(
     var showBackDialog by remember { mutableStateOf(false) }
     var showSnippetPicker by remember { mutableStateOf(false) }
 
+    // Keep screen on while in terminal (reads from Settings pref)
+    val activity = context as? Activity
+    DisposableEffect(Unit) {
+        activity?.window?.addFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        onDispose {
+            activity?.window?.clearFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        }
+    }
+
     // Font size state for volume zoom
     var fontSizeSp by remember(skin.textSizeSp) { mutableStateOf(skin.textSizeSp) }
     var showZoomIndicator by remember { mutableStateOf(false) }
@@ -249,7 +258,9 @@ fun TerminalScreen(
                 Box(modifier = Modifier.fillMaxWidth().weight(1f)) {
                     Terminal(
                         terminalEmulator = em,
-                        modifier = Modifier.fillMaxSize(),
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(start = 16.dp),
                         typeface = Typeface.MONOSPACE,
                         initialFontSize = fontSizeSp.sp,
                         keyboardEnabled = true,
