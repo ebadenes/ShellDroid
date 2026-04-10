@@ -130,16 +130,43 @@ class HostsListViewModel @Inject constructor(
         }
     }
 
-    fun quickConnect(hostname: String, port: Int, username: String, password: String) {
-        val hostId = "quick-${UUID.randomUUID()}"
+    fun quickConnect(
+        hostname: String,
+        port: Int,
+        username: String,
+        password: String,
+        saveToDb: Boolean = false,
+    ) {
+        val hostId = UUID.randomUUID().toString()
         viewModelScope.launch {
             _connectState.value = ConnectState.Connecting(hostId)
+
+            // Optionally save to DB first
+            if (saveToDb) {
+                val host = Host(
+                    id = hostId,
+                    userId = repo.currentUserId(),
+                    name = "$username@$hostname",
+                    hostname = hostname,
+                    port = port,
+                    username = username,
+                    createdAt = System.currentTimeMillis(),
+                )
+                repo.upsert(host)
+            }
+
+            val auth = if (password.isNotEmpty()) {
+                AuthMethod.Password(password.toCharArray())
+            } else {
+                // Try none/keyboard-interactive — server may allow it
+                AuthMethod.Password(CharArray(0))
+            }
             val config = SshConfig(
                 hostId = hostId,
                 hostname = hostname,
                 port = port,
                 username = username,
-                auth = AuthMethod.Password(password.toCharArray()),
+                auth = auth,
             )
             val result = sessionManager.connect(config)
             _connectState.value = if (result.isSuccess) {

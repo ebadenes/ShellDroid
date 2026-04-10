@@ -70,120 +70,97 @@ fun TerminalKeyBar(
             .padding(horizontal = 3.dp, vertical = 3.dp),
         verticalArrangement = Arrangement.spacedBy(3.dp),
     ) {
-        // ── Row 1: ESC / | - HOME UP END PGUP FN ──
+        // ── Row 1: ESC / | - HOME UP END PGUP FN ── (fills width)
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .horizontalScroll(scrollRow1),
-            horizontalArrangement = Arrangement.spacedBy(3.dp),
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(2.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            KeyBarButton("ESC", foreground, false) {
+            val w = Modifier.weight(1f)
+            KeyBarButton("ESC", foreground, false, w) {
                 haptic(); emulator.dispatchKey(0, VTermKey.ESCAPE)
             }
-            KeyBarButton("/", foreground, false) {
+            KeyBarButton("/", foreground, false, w) {
                 haptic(); emulator.dispatchCharacter(0, '/')
             }
-            KeyBarButton("|", foreground, false) {
+            KeyBarButton("|", foreground, false, w) {
                 haptic(); emulator.dispatchCharacter(0, '|')
             }
-            KeyBarButton("-", foreground, false) {
+            KeyBarButton("-", foreground, false, w) {
                 haptic(); emulator.dispatchCharacter(0, '-')
             }
-            KeyBarButton("HOME", foreground, false) {
+            KeyBarButton("HM", foreground, false, w) {
                 haptic(); emulator.dispatchKey(0, VTermKey.HOME)
             }
-            KeyBarButton("\u2191", foreground, false) {
+            KeyBarButton("\u2191", foreground, false, w) {
                 haptic(); emulator.dispatchKey(0, VTermKey.UP)
             }
-            KeyBarButton("END", foreground, false) {
+            KeyBarButton("ED", foreground, false, w) {
                 haptic(); emulator.dispatchKey(0, VTermKey.END)
             }
-            KeyBarButton("PGUP", foreground, false) {
+            KeyBarButton("PU", foreground, false, w) {
                 haptic(); emulator.dispatchKey(0, VTermKey.PAGEUP)
             }
-            KeyBarButton("FN", foreground, fnMode) {
+            KeyBarButton("FN", foreground, fnMode, w) {
                 haptic(); fnMode = !fnMode
             }
         }
 
         // ── Row 2 ──
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .horizontalScroll(scrollRow2),
-            horizontalArrangement = Arrangement.spacedBy(3.dp),
+            modifier = Modifier.fillMaxWidth().let {
+                if (fnMode) it.horizontalScroll(scrollRow2) else it
+            },
+            horizontalArrangement = Arrangement.spacedBy(2.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             if (fnMode) {
-                // F-keys row
-                KeyBarButton("F1", foreground, false) {
-                    haptic(); emulator.dispatchKey(0, VTermKey.FUNCTION_1)
-                }
-                KeyBarButton("F2", foreground, false) {
-                    haptic(); emulator.dispatchKey(0, VTermKey.FUNCTION_2)
-                }
-                KeyBarButton("F3", foreground, false) {
-                    haptic(); emulator.dispatchKey(0, VTermKey.FUNCTION_3)
-                }
-                KeyBarButton("F4", foreground, false) {
-                    haptic(); emulator.dispatchKey(0, VTermKey.FUNCTION_4)
-                }
-                KeyBarButton("F5", foreground, false) {
-                    haptic(); emulator.dispatchKey(0, VTermKey.FUNCTION_5)
-                }
-                KeyBarButton("F6", foreground, false) {
-                    haptic(); emulator.dispatchKey(0, VTermKey.FUNCTION_6)
-                }
-                KeyBarButton("F7", foreground, false) {
-                    haptic(); emulator.dispatchKey(0, VTermKey.FUNCTION_7)
-                }
-                KeyBarButton("F8", foreground, false) {
-                    haptic(); emulator.dispatchKey(0, VTermKey.FUNCTION_8)
-                }
-                KeyBarButton("F9", foreground, false) {
-                    haptic(); emulator.dispatchKey(0, VTermKey.FUNCTION_9)
-                }
-                KeyBarButton("F10", foreground, false) {
-                    haptic(); emulator.dispatchKey(0, VTermKey.FUNCTION_10)
-                }
-                KeyBarButton("F11", foreground, false) {
-                    haptic(); emulator.dispatchKey(0, VTermKey.FUNCTION_11)
-                }
-                KeyBarButton("F12", foreground, false) {
-                    haptic(); emulator.dispatchKey(0, VTermKey.FUNCTION_12)
+                // F-keys row (scrollable — 12 buttons don't fit)
+                for (i in 1..12) {
+                    val key = when (i) {
+                        1 -> VTermKey.FUNCTION_1; 2 -> VTermKey.FUNCTION_2
+                        3 -> VTermKey.FUNCTION_3; 4 -> VTermKey.FUNCTION_4
+                        5 -> VTermKey.FUNCTION_5; 6 -> VTermKey.FUNCTION_6
+                        7 -> VTermKey.FUNCTION_7; 8 -> VTermKey.FUNCTION_8
+                        9 -> VTermKey.FUNCTION_9; 10 -> VTermKey.FUNCTION_10
+                        11 -> VTermKey.FUNCTION_11; else -> VTermKey.FUNCTION_12
+                    }
+                    KeyBarButton("F$i", foreground, false) {
+                        haptic(); emulator.dispatchKey(0, key)
+                    }
                 }
             } else {
-                // Navigation row
-                KeyBarButton("TAB", foreground, false) {
+                // Navigation row (fills width)
+                val w = Modifier.weight(1f)
+                KeyBarButton("TAB", foreground, false, w) {
                     haptic(); emulator.dispatchKey(0, VTermKey.TAB)
                 }
-                KeyBarButton("CTRL", foreground, ctrlOn) {
+                KeyBarButton("CTL", foreground, ctrlOn, w) {
                     haptic()
                     modifierManager.toggleCtrl()
                     ctrlOn = modifierManager.isCtrlActive()
                 }
-                KeyBarButton("ALT", foreground, altOn) {
+                KeyBarButton("ALT", foreground, altOn, w) {
                     haptic()
                     modifierManager.toggleAlt()
                     altOn = modifierManager.isAltActive()
                 }
-                KeyBarButton("\u2190", foreground, false) {
+                KeyBarButton("\u2190", foreground, false, w) {
                     haptic(); emulator.dispatchKey(0, VTermKey.LEFT)
                 }
-                KeyBarButton("\u2193", foreground, false) {
+                KeyBarButton("\u2193", foreground, false, w) {
                     haptic(); emulator.dispatchKey(0, VTermKey.DOWN)
                 }
-                KeyBarButton("\u2192", foreground, false) {
+                KeyBarButton("\u2192", foreground, false, w) {
                     haptic(); emulator.dispatchKey(0, VTermKey.RIGHT)
                 }
-                KeyBarButton("PGDN", foreground, false) {
+                KeyBarButton("PD", foreground, false, w) {
                     haptic(); emulator.dispatchKey(0, VTermKey.PAGEDOWN)
                 }
-                KeyBarButton("\uD83D\uDCCB", foreground, false) {
+                KeyBarButton("\uD83D\uDCCB", foreground, false, w) {
                     haptic(); onRequestSnippets()
                 }
-                KeyBarButton("\u2328", foreground, false) {
+                KeyBarButton("\u2328", foreground, false, w) {
                     haptic(); onRequestShowKeyboard()
                 }
             }
@@ -196,17 +173,17 @@ private fun KeyBarButton(
     label: String,
     foreground: Color,
     active: Boolean,
+    modifier: Modifier = Modifier,
     onClick: () -> Unit,
 ) {
     val bg = if (active) foreground.copy(alpha = 0.25f) else foreground.copy(alpha = 0.08f)
     val fg = if (active) foreground else foreground.copy(alpha = 0.85f)
     Box(
-        modifier = Modifier
+        modifier = modifier
             .height(28.dp)
             .clip(RoundedCornerShape(4.dp))
             .background(bg)
-            .clickable(onClick = onClick)
-            .padding(horizontal = 7.dp),
+            .clickable(onClick = onClick),
         contentAlignment = Alignment.Center,
     ) {
         Text(

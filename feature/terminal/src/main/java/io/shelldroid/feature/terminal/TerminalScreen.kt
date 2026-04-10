@@ -151,11 +151,13 @@ fun TerminalScreen(
     }
 
     // ── Back handler ────────────────────────────────────────────
-    // IME visible → close IME. IME hidden → show dialog.
-    BackHandler {
+    // Catches BOTH button-back AND gesture-back (swipe from edge).
+    // IME visible → close IME + hide bar. IME hidden → show dialog.
+    BackHandler(enabled = true) {
         if (systemImeVisible) {
             insetsController?.hide(WindowInsetsCompat.Type.ime())
             showSoftKeyboard = false
+            showHackerBar = false
         } else {
             showBackDialog = true
         }

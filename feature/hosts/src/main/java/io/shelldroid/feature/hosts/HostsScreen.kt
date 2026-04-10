@@ -43,6 +43,7 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -79,58 +80,55 @@ fun HostsScreen(
     var showQuickConnect by remember { mutableStateOf(false) }
     var overflowExpanded by remember { mutableStateOf(false) }
 
-    // Quick Connect dialog
+    // Quick Connect dialog — single-line format: user@host:port
     if (showQuickConnect) {
-        var qcHostname by remember { mutableStateOf("") }
-        var qcUsername by remember { mutableStateOf("root") }
+        var qcInput by remember { mutableStateOf("root@") }
         var qcPassword by remember { mutableStateOf("") }
-        var qcPort by remember { mutableStateOf("22") }
+        var qcSave by remember { mutableStateOf(false) }
 
         AlertDialog(
             onDismissRequest = { showQuickConnect = false },
             title = { Text(stringResource(UiR.string.quick_connect)) },
             text = {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     OutlinedTextField(
-                        value = qcHostname,
-                        onValueChange = { qcHostname = it },
-                        label = { Text(stringResource(UiR.string.hostname)) },
+                        value = qcInput,
+                        onValueChange = { qcInput = it },
+                        label = { Text("user@host:port") },
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true,
-                    )
-                    OutlinedTextField(
-                        value = qcUsername,
-                        onValueChange = { qcUsername = it },
-                        label = { Text(stringResource(UiR.string.username)) },
-                        modifier = Modifier.fillMaxWidth(),
-                        singleLine = true,
+                        placeholder = { Text("root@192.168.1.1:22") },
                     )
                     OutlinedTextField(
                         value = qcPassword,
                         onValueChange = { qcPassword = it },
-                        label = { Text(stringResource(UiR.string.password)) },
+                        label = { Text("${stringResource(UiR.string.password)} (opcional)") },
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true,
                         visualTransformation = PasswordVisualTransformation(),
                     )
-                    OutlinedTextField(
-                        value = qcPort,
-                        onValueChange = { qcPort = it.filter { c -> c.isDigit() } },
-                        label = { Text(stringResource(UiR.string.port)) },
-                        modifier = Modifier.fillMaxWidth(),
-                        singleLine = true,
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                    )
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Checkbox(
+                            checked = qcSave,
+                            onCheckedChange = { qcSave = it },
+                        )
+                        Text(stringResource(UiR.string.save), style = MaterialTheme.typography.bodySmall)
+                    }
                 }
             },
             confirmButton = {
                 TextButton(
                     onClick = {
-                        val port = qcPort.toIntOrNull() ?: 22
-                        viewModel.quickConnect(qcHostname.trim(), port, qcUsername.trim(), qcPassword)
-                        showQuickConnect = false
+                        val parsed = parseQuickConnect(qcInput.trim())
+                        if (parsed != null) {
+                            viewModel.quickConnect(
+                                parsed.first, parsed.second, parsed.third,
+                                qcPassword, qcSave,
+                            )
+                            showQuickConnect = false
+                        }
                     },
-                    enabled = qcHostname.isNotBlank() && qcUsername.isNotBlank(),
+                    enabled = qcInput.contains("@"),
                 ) { Text(stringResource(UiR.string.connect)) }
             },
             dismissButton = {
@@ -292,5 +290,24 @@ fun HostsScreen(
     // Optional TOFU dialog rendering — feature modules render the prompts when wired in.
     if (prompter != null) {
         HostKeyDialogHost(prompter)
+    }
+}
+
+/**
+ * Parse "user@host:port" → Triple(hostname, port, username).
+ * Port is optional (defaults to 22). Username is required.
+ */
+private fun parseQuickConnect(input: String): Triple<String, Int, String>? {
+    val atIdx = input.indexOf('@')
+    if (atIdx < 1) return null
+    val user = input.substring(0, atIdx)
+    val rest = input.substring(atIdx + 1)
+    val colonIdx = rest.indexOf(':')
+    return if (colonIdx >= 0) {
+        val host = rest.substring(0, colonIdx)
+        val port = rest.substring(colonIdx + 1).toIntOrNull() ?: 22
+        Triple(host, port, user)
+    } else {
+        Triple(rest, 22, user)
     }
 }
