@@ -61,31 +61,35 @@ class HostsListViewModel @Inject constructor(
                 _connectState.value = ConnectState.Error(hostId, "Host no encontrado")
                 return@launch
             }
-            val identityId = host.identityId
-            if (identityId == null) {
-                _connectState.value = ConnectState.Error(hostId, "Host sin identity asociada")
-                return@launch
-            }
-            val identity = identityRepo.findById(identityId)
-            if (identity == null) {
-                _connectState.value = ConnectState.Error(hostId, "Identity no encontrada")
-                return@launch
-            }
-            if (identity.needsReentry) {
-                _connectState.value = ConnectState.Error(
-                    hostId,
-                    "Credencial invalidada — re-ingresala",
-                )
-                return@launch
-            }
-            val authMethod = try {
-                buildAuthMethod(identity)
-            } catch (t: Throwable) {
-                _connectState.value = ConnectState.Error(
-                    hostId,
-                    "No se pudo descifrar la credencial: ${t.message}",
-                )
-                return@launch
+            // Build auth method: if host has an identity, use it;
+            // otherwise connect with empty password (keyboard-interactive
+            // or the server will prompt).
+            val authMethod = run {
+                val identityId = host.identityId
+                if (identityId != null) {
+                    val identity = identityRepo.findById(identityId)
+                    if (identity == null) {
+                        _connectState.value = ConnectState.Error(hostId, "Identity no encontrada")
+                        return@launch
+                    }
+                    if (identity.needsReentry) {
+                        _connectState.value = ConnectState.Error(
+                            hostId, "Credencial invalidada — re-ingresala",
+                        )
+                        return@launch
+                    }
+                    try {
+                        buildAuthMethod(identity)
+                    } catch (t: Throwable) {
+                        _connectState.value = ConnectState.Error(
+                            hostId, "No se pudo descifrar la credencial: ${t.message}",
+                        )
+                        return@launch
+                    }
+                } else {
+                    // No identity — try with empty password (keyboard-interactive)
+                    AuthMethod.Password(CharArray(0))
+                }
             }
             val config = SshConfig(
                 hostId = host.id,

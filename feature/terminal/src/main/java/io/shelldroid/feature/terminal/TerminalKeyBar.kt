@@ -89,16 +89,16 @@ fun TerminalKeyBar(
             KeyBarButton("-", foreground, false, w) {
                 haptic(); emulator.dispatchCharacter(0, '-')
             }
-            KeyBarButton("HM", foreground, false, w) {
+            KeyBarButton("HOME", foreground, false, w) {
                 haptic(); emulator.dispatchKey(0, VTermKey.HOME)
             }
             KeyBarButton("\u2191", foreground, false, w) {
                 haptic(); emulator.dispatchKey(0, VTermKey.UP)
             }
-            KeyBarButton("ED", foreground, false, w) {
+            KeyBarButton("END", foreground, false, w) {
                 haptic(); emulator.dispatchKey(0, VTermKey.END)
             }
-            KeyBarButton("PU", foreground, false, w) {
+            KeyBarButton("PGUP", foreground, false, w) {
                 haptic(); emulator.dispatchKey(0, VTermKey.PAGEUP)
             }
             KeyBarButton("FN", foreground, fnMode, w) {
@@ -135,7 +135,7 @@ fun TerminalKeyBar(
                 KeyBarButton("TAB", foreground, false, w) {
                     haptic(); emulator.dispatchKey(0, VTermKey.TAB)
                 }
-                KeyBarButton("CTL", foreground, ctrlOn, w) {
+                KeyBarButton("CTRL", foreground, ctrlOn, w) {
                     haptic()
                     modifierManager.toggleCtrl()
                     ctrlOn = modifierManager.isCtrlActive()
@@ -154,7 +154,7 @@ fun TerminalKeyBar(
                 KeyBarButton("\u2192", foreground, false, w) {
                     haptic(); emulator.dispatchKey(0, VTermKey.RIGHT)
                 }
-                KeyBarButton("PD", foreground, false, w) {
+                KeyBarButton("PGDN", foreground, false, w) {
                     haptic(); emulator.dispatchKey(0, VTermKey.PAGEDOWN)
                 }
                 KeyBarButton("\uD83D\uDCCB", foreground, false, w) {

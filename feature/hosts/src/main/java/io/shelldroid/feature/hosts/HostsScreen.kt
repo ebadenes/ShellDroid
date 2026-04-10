@@ -81,9 +81,10 @@ fun HostsScreen(
     var overflowExpanded by remember { mutableStateOf(false) }
 
     // Quick Connect dialog — single-line format: user@host:port
+    // No password field: auth happens interactively in the terminal
+    // (keyboard-interactive, or the server prompts for a password).
     if (showQuickConnect) {
         var qcInput by remember { mutableStateOf("root@") }
-        var qcPassword by remember { mutableStateOf("") }
         var qcSave by remember { mutableStateOf(false) }
 
         AlertDialog(
@@ -98,14 +99,6 @@ fun HostsScreen(
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true,
                         placeholder = { Text("root@192.168.1.1:22") },
-                    )
-                    OutlinedTextField(
-                        value = qcPassword,
-                        onValueChange = { qcPassword = it },
-                        label = { Text("${stringResource(UiR.string.password)} (opcional)") },
-                        modifier = Modifier.fillMaxWidth(),
-                        singleLine = true,
-                        visualTransformation = PasswordVisualTransformation(),
                     )
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Checkbox(
@@ -123,7 +116,7 @@ fun HostsScreen(
                         if (parsed != null) {
                             viewModel.quickConnect(
                                 parsed.first, parsed.second, parsed.third,
-                                qcPassword, qcSave,
+                                "", qcSave,
                             )
                             showQuickConnect = false
                         }
