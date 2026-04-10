@@ -47,7 +47,7 @@ class PortForwardManager @Inject constructor(
     private val sessionManager: SshSessionManager,
 ) {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
-    private val tunnels = mutableMapOf<String, TunnelState>()
+    private val tunnels = java.util.concurrent.ConcurrentHashMap<String, TunnelState>()
 
     private val _statuses = MutableStateFlow<Map<String, ForwardStatus>>(emptyMap())
     val statuses: StateFlow<Map<String, ForwardStatus>> = _statuses.asStateFlow()

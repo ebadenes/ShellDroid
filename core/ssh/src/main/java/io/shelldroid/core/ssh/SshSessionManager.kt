@@ -35,7 +35,7 @@ class SshSessionManager @Inject constructor(
     private val sessions = ConcurrentHashMap<String, LibSshClient>()
     /** Labels for the notification: hostId → "user@host:port" */
     private val sessionLabels = ConcurrentHashMap<String, String>()
-    private var _connectTime: Long = 0L
+    @Volatile private var _connectTime: Long = 0L
 
     private val _activeCountFlow = MutableStateFlow(0)
     /** Observable session count. The session service collects this. */

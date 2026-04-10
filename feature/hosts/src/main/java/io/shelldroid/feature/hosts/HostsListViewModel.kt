@@ -45,11 +45,11 @@ class HostsListViewModel @Inject constructor(
 
     private val _connectState = MutableStateFlow<ConnectState>(ConnectState.Idle)
     val connectState: StateFlow<ConnectState> = _connectState.asStateFlow()
-    @Volatile private var _pendingPassword: String? = null
+    @Volatile private var _pendingPassword: CharArray? = null
 
     /** Set password then retry connect for hosts without identity. */
     fun connectWithPassword(hostId: String, password: String) {
-        _pendingPassword = password
+        _pendingPassword = password.toCharArray()
         connect(hostId)
     }
 
@@ -98,11 +98,15 @@ class HostsListViewModel @Inject constructor(
                     // No identity — use pending password if available
                     val pw = _pendingPassword
                     _pendingPassword = null
-                    if (pw.isNullOrEmpty()) {
+                    if (pw == null || pw.isEmpty()) {
                         _connectState.value = ConnectState.NeedsPassword(hostId)
                         return@launch
                     }
-                    AuthMethod.Password(pw.toCharArray())
+                    try {
+                        AuthMethod.Password(pw.copyOf())
+                    } finally {
+                        pw.fill('\u0000')
+                    }
                 }
             }
             val config = SshConfig(
@@ -173,10 +177,14 @@ class HostsListViewModel @Inject constructor(
                 repo.upsert(host)
             }
 
-            val auth = if (password.isNotEmpty()) {
-                AuthMethod.Password(password.toCharArray())
+            val pwChars = password.toCharArray()
+            val auth = if (pwChars.isNotEmpty()) {
+                try {
+                    AuthMethod.Password(pwChars.copyOf())
+                } finally {
+                    pwChars.fill('\u0000')
+                }
             } else {
-                // Try none/keyboard-interactive — server may allow it
                 AuthMethod.Password(CharArray(0))
             }
             val config = SshConfig(
