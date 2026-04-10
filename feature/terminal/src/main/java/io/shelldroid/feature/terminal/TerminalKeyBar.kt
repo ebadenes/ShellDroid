@@ -56,7 +56,7 @@ fun TerminalKeyBar(
 ) {
     val hapticFeedback = LocalHapticFeedback.current
     val haptic: () -> Unit = {
-        hapticFeedback.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+        hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
     }
 
     // Read directly from modifierManager (Compose-observable state via

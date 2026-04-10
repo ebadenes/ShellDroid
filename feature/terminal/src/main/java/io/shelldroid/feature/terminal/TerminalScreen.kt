@@ -308,7 +308,9 @@ fun TerminalScreen(
                         modifierManager = modifierManager,
                         background = Color(skin.background),
                         foreground = Color(skin.foreground),
-                        onRequestShowKeyboard = { forceShowKeyboard() },
+                        onRequestShowKeyboard = {
+                            if (systemImeVisible) forceHideKeyboard() else forceShowKeyboard()
+                        },
                         onRequestSnippets = { showSnippetPicker = true },
                         onPaste = {
                             val text = clipboardManager.getText()?.text ?: return@TerminalKeyBar
