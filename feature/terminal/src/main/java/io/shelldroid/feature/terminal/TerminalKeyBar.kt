@@ -97,7 +97,7 @@ fun TerminalKeyBar(
             KeyBarButton("HOME", foreground, false, w) {
                 haptic(); emulator.dispatchKey(0, VTermKey.HOME)
             }
-            KeyBarButton("\u2191", foreground, false, w) {
+            KeyBarButton("\u25B2", foreground, false, w) {
                 haptic(); emulator.dispatchKey(0, VTermKey.UP)
             }
             KeyBarButton("END", foreground, false, w) {
@@ -148,13 +148,13 @@ fun TerminalKeyBar(
                 KeyBarButton("ALT", foreground, altOn, w) {
                     haptic(); modifierManager.toggleAlt()
                 }
-                KeyBarButton("\u2190", foreground, false, w) {
+                KeyBarButton("\u25C0", foreground, false, w) {
                     haptic(); emulator.dispatchKey(0, VTermKey.LEFT)
                 }
-                KeyBarButton("\u2193", foreground, false, w) {
+                KeyBarButton("\u25BC", foreground, false, w) {
                     haptic(); emulator.dispatchKey(0, VTermKey.DOWN)
                 }
-                KeyBarButton("\u2192", foreground, false, w) {
+                KeyBarButton("\u25B6", foreground, false, w) {
                     haptic(); emulator.dispatchKey(0, VTermKey.RIGHT)
                 }
                 KeyBarButton("PGDN", foreground, false, w) {
