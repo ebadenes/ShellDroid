@@ -1,6 +1,5 @@
 package io.shelldroid.feature.terminal
 
-import android.view.HapticFeedbackConstants
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
@@ -24,7 +23,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -54,16 +54,18 @@ fun TerminalKeyBar(
     onClear: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
-    val view = LocalView.current
+    val hapticFeedback = LocalHapticFeedback.current
     val haptic: () -> Unit = {
-        view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+        hapticFeedback.performHapticFeedback(HapticFeedbackType.TextHandleMove)
     }
 
-    var ctrlOn by remember { mutableStateOf(false) }
-    var altOn by remember { mutableStateOf(false) }
+    // Read directly from modifierManager (Compose-observable state via
+    // mutableStateOf). When termlib calls clearTransients() after consuming
+    // a keystroke, the button auto-unhighlights.
+    val ctrlOn = modifierManager.ctrlActive
+    val altOn = modifierManager.altActive
     var fnMode by remember { mutableStateOf(false) }
 
-    val scrollRow1 = rememberScrollState()
     val scrollRow2 = rememberScrollState()
 
     Column(
@@ -141,14 +143,10 @@ fun TerminalKeyBar(
                     haptic(); emulator.dispatchKey(0, VTermKey.TAB)
                 }
                 KeyBarButton("CTRL", foreground, ctrlOn, w) {
-                    haptic()
-                    modifierManager.toggleCtrl()
-                    ctrlOn = modifierManager.isCtrlActive()
+                    haptic(); modifierManager.toggleCtrl()
                 }
                 KeyBarButton("ALT", foreground, altOn, w) {
-                    haptic()
-                    modifierManager.toggleAlt()
-                    altOn = modifierManager.isAltActive()
+                    haptic(); modifierManager.toggleAlt()
                 }
                 KeyBarButton("\u2190", foreground, false, w) {
                     haptic(); emulator.dispatchKey(0, VTermKey.LEFT)
