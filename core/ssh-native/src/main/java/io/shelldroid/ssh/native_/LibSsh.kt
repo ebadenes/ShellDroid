@@ -56,4 +56,10 @@ object LibSsh {
     @JvmStatic external fun nativeChannelWrite(channelPtr: Long, data: ByteArray, offset: Int, length: Int): Int
     @JvmStatic external fun nativeChannelClose(channelPtr: Long)
     @JvmStatic external fun nativeChannelFree(channelPtr: Long)
+
+    // port forwarding (direct-tcpip)
+    @JvmStatic external fun nativeOpenForward(
+        sessionPtr: Long, remoteHost: String, remotePort: Int,
+        sourceHost: String, localPort: Int
+    ): Long
 }

@@ -1,5 +1,6 @@
 package io.shelldroid.feature.portforward
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -8,13 +9,17 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.Stop
 import androidx.compose.material3.Card
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
@@ -35,6 +40,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -42,6 +49,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import io.shelldroid.core.ui.R as UiR
 import io.shelldroid.core.db.PortForwardType
 import io.shelldroid.core.db.entities.PortForward
+import io.shelldroid.core.ssh.ForwardState
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -52,6 +60,7 @@ fun PortForwardsScreen(
     viewModel: PortForwardsListViewModel = hiltViewModel(),
 ) {
     val grouped by viewModel.grouped.collectAsState()
+    val statuses by viewModel.forwardStatuses.collectAsState()
     var pfToDelete by remember { mutableStateOf<PortForward?>(null) }
 
     if (pfToDelete != null) {
@@ -110,11 +119,20 @@ fun PortForwardsScreen(
                             )
                         }
                         items(group.forwards, key = { it.id }) { pf ->
+                            val status = statuses[pf.id]
                             PortForwardCard(
                                 pf = pf,
+                                forwardState = status?.state ?: ForwardState.STOPPED,
                                 onClick = { onEdit(pf.id) },
                                 onClone = { viewModel.clone(pf) },
                                 onDelete = { pfToDelete = pf },
+                                onToggle = {
+                                    if (status?.state == ForwardState.ACTIVE) {
+                                        viewModel.stopForward(pf)
+                                    } else {
+                                        viewModel.startForward(pf)
+                                    }
+                                },
                             )
                         }
                     }
@@ -127,9 +145,11 @@ fun PortForwardsScreen(
 @Composable
 private fun PortForwardCard(
     pf: PortForward,
+    forwardState: ForwardState,
     onClick: () -> Unit,
     onClone: () -> Unit,
     onDelete: () -> Unit,
+    onToggle: () -> Unit,
 ) {
     Card(
         modifier = Modifier
@@ -143,9 +163,24 @@ private fun PortForwardCard(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             TypeChip(pf.type)
+            // Status indicator dot
+            Box(
+                modifier = Modifier
+                    .padding(start = 8.dp)
+                    .size(10.dp)
+                    .clip(CircleShape)
+                    .background(
+                        when (forwardState) {
+                            ForwardState.ACTIVE -> Color(0xFF4CAF50) // green
+                            ForwardState.STARTING -> Color(0xFFFFC107) // amber
+                            ForwardState.ERROR -> Color(0xFFF44336) // red
+                            ForwardState.STOPPED -> Color(0xFF9E9E9E) // grey
+                        }
+                    )
+            )
             Column(
                 modifier = Modifier
-                    .padding(start = 12.dp)
+                    .padding(start = 8.dp)
                     .weight(1f),
             ) {
                 Text(
@@ -157,6 +192,20 @@ private fun PortForwardCard(
                     text = forwardingString(pf),
                     style = MaterialTheme.typography.bodySmall,
                 )
+            }
+            // Start/Stop toggle (only for LOCAL type)
+            if (pf.type == PortForwardType.LOCAL) {
+                IconButton(onClick = onToggle) {
+                    Icon(
+                        imageVector = if (forwardState == ForwardState.ACTIVE)
+                            Icons.Default.Stop else Icons.Default.PlayArrow,
+                        contentDescription = if (forwardState == ForwardState.ACTIVE)
+                            "Stop" else "Start",
+                        tint = if (forwardState == ForwardState.ACTIVE)
+                            MaterialTheme.colorScheme.error
+                        else MaterialTheme.colorScheme.primary,
+                    )
+                }
             }
             IconButton(onClick = onClone) {
                 Icon(Icons.Default.ContentCopy, contentDescription = "Clone")

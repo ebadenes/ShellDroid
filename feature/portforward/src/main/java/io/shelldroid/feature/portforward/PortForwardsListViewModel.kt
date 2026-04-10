@@ -3,9 +3,13 @@ package io.shelldroid.feature.portforward
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
+import io.shelldroid.core.db.PortForwardType
 import io.shelldroid.core.db.dao.HostDao
 import io.shelldroid.core.db.entities.Host
 import io.shelldroid.core.db.entities.PortForward
+import io.shelldroid.core.ssh.ForwardState
+import io.shelldroid.core.ssh.ForwardStatus
+import io.shelldroid.core.ssh.PortForwardManager
 import io.shelldroid.feature.portforward.data.PortForwardRepository
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
@@ -23,6 +27,7 @@ import javax.inject.Inject
 class PortForwardsListViewModel @Inject constructor(
     private val repo: PortForwardRepository,
     private val hostDao: HostDao,
+    private val portForwardManager: PortForwardManager,
 ) : ViewModel() {
 
     data class Grouped(
@@ -48,8 +53,14 @@ class PortForwardsListViewModel @Inject constructor(
             .sortedBy { it.host?.name ?: "" }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
+    /** Observable statuses of all running/stopped tunnels. */
+    val forwardStatuses: StateFlow<Map<String, ForwardStatus>> = portForwardManager.statuses
+
     fun delete(pf: PortForward) {
-        viewModelScope.launch { repo.delete(pf) }
+        viewModelScope.launch {
+            portForwardManager.stop(pf.id)
+            repo.delete(pf)
+        }
     }
 
     fun clone(pf: PortForward) {
@@ -60,5 +71,30 @@ class PortForwardsListViewModel @Inject constructor(
             )
             repo.save(copy)
         }
+    }
+
+    /** Starts a LOCAL forward tunnel. REMOTE/DYNAMIC are not yet supported. */
+    fun startForward(pf: PortForward) {
+        if (pf.type != PortForwardType.LOCAL) return // TODO: REMOTE, DYNAMIC
+        val remoteHost = pf.remoteHost ?: return
+        val remotePort = pf.remotePort ?: return
+        portForwardManager.startLocal(
+            forwardId = pf.id,
+            hostId = pf.hostId,
+            localPort = pf.localPort,
+            remoteHost = remoteHost,
+            remotePort = remotePort,
+        )
+    }
+
+    /** Stops a running tunnel. */
+    fun stopForward(pf: PortForward) {
+        portForwardManager.stop(pf.id)
+    }
+
+    /** Checks whether a forward is currently active. */
+    fun isForwardActive(forwardId: String): Boolean {
+        val status = forwardStatuses.value[forwardId]
+        return status?.state == ForwardState.ACTIVE
     }
 }

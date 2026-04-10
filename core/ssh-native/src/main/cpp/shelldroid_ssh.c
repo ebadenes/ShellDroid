@@ -570,3 +570,46 @@ Java_io_shelldroid_ssh_native_1_LibSsh_nativeChannelFree(JNIEnv* env, jclass cla
     ssh_channel c = (ssh_channel)(intptr_t)channelPtr;
     if (c) ssh_channel_free(c);
 }
+
+/* ------------------------------------------------------------------
+ * port forwarding (direct-tcpip channel for LOCAL forwarding)
+ * ------------------------------------------------------------------ */
+
+/**
+ * Opens a direct-tcpip channel (LOCAL port forward). The returned channel
+ * pointer can be used with the regular nativeChannelRead / nativeChannelWrite
+ * functions to pipe data between the local socket and the remote endpoint.
+ *
+ * Returns the channel pointer (as jlong), or 0 on failure.
+ */
+JNIEXPORT jlong JNICALL
+Java_io_shelldroid_ssh_native_1_LibSsh_nativeOpenForward(JNIEnv* env, jclass clazz,
+        jlong sessionPtr, jstring remoteHost, jint remotePort,
+        jstring sourceHost, jint localPort) {
+    (void)clazz;
+    ssh_session s = (ssh_session)(intptr_t)sessionPtr;
+    if (!s) return 0;
+
+    char* rh = jstring_to_cstr(env, remoteHost);
+    if (!rh) return 0;
+    char* sh = jstring_to_cstr(env, sourceHost);
+    if (!sh) sh = strdup("localhost");
+
+    ssh_channel ch = ssh_channel_new(s);
+    if (!ch) {
+        free(rh);
+        free(sh);
+        return 0;
+    }
+
+    int rc = ssh_channel_open_forward(ch, rh, (int)remotePort, sh, (int)localPort);
+    free(rh);
+    free(sh);
+
+    if (rc != SSH_OK) {
+        LOGE("ssh_channel_open_forward failed: %s", ssh_get_error(s));
+        ssh_channel_free(ch);
+        return 0;
+    }
+    return (jlong)(intptr_t)ch;
+}

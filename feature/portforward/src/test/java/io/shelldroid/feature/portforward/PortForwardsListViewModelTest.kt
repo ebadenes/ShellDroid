@@ -10,6 +10,7 @@ import io.shelldroid.core.db.PortForwardType
 import io.shelldroid.core.db.dao.HostDao
 import io.shelldroid.core.db.entities.Host
 import io.shelldroid.core.db.entities.PortForward
+import io.shelldroid.core.ssh.PortForwardManager
 import io.shelldroid.feature.portforward.data.PortForwardRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -62,7 +63,7 @@ class PortForwardsListViewModelTest {
         coEvery { repo.currentUserId() } returns "u1"
         every { hostDao.observeAll("u1") } returns flowOf(listOf(host()))
 
-        val vm = PortForwardsListViewModel(repo, hostDao)
+        val vm = PortForwardsListViewModel(repo, hostDao, mockk<PortForwardManager>(relaxed = true))
         vm.forwards.test {
             assertThat(awaitItem()).isEmpty()
             assertThat(awaitItem()).hasSize(1)
@@ -80,7 +81,7 @@ class PortForwardsListViewModelTest {
         every { hostDao.observeAll("u1") } returns
             flowOf(listOf(host("h1", "alpha"), host("h2", "beta")))
 
-        val vm = PortForwardsListViewModel(repo, hostDao)
+        val vm = PortForwardsListViewModel(repo, hostDao, mockk<PortForwardManager>(relaxed = true))
         vm.grouped.test {
             // initial empty then combined result
             assertThat(awaitItem()).isEmpty()
@@ -101,7 +102,7 @@ class PortForwardsListViewModelTest {
         coEvery { repo.currentUserId() } returns "u1"
         every { hostDao.observeAll("u1") } returns flowOf(emptyList())
 
-        val vm = PortForwardsListViewModel(repo, hostDao)
+        val vm = PortForwardsListViewModel(repo, hostDao, mockk<PortForwardManager>(relaxed = true))
         val p = pf()
         vm.delete(p)
         advanceUntilIdle()

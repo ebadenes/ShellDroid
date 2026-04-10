@@ -171,6 +171,28 @@ class LibSshClient internal constructor() {
             }
         }
 
+    /**
+     * Opens a direct-tcpip channel for LOCAL port forwarding.
+     * The returned [ForwardChannel] can read/write data between the local
+     * socket and the remote endpoint.
+     */
+    suspend fun openForward(
+        remoteHost: String,
+        remotePort: Int,
+        localPort: Int,
+        sourceHost: String = "localhost",
+    ): ForwardChannel = sessionMutex.withLock {
+        withContext(Dispatchers.IO) {
+            val s = sessionPtr
+            require(s != 0L) { "not connected" }
+            val ch = LibSsh.nativeOpenForward(s, remoteHost, remotePort, sourceHost, localPort)
+            if (ch == 0L) throw SshConnectException.Unknown(
+                "open_forward failed: ${LibSsh.nativeGetError(s)}"
+            )
+            ForwardChannel(ch, sessionMutex)
+        }
+    }
+
     /** Returns the last libssh error string, or null if not connected. */
     fun lastError(): String? =
         if (sessionPtr == 0L) null else LibSsh.nativeGetError(sessionPtr)
@@ -274,6 +296,58 @@ class ShellChannel internal constructor(
      * the same session. After this returns the channel pointer is 0 and
      * subsequent read/write calls short-circuit to -1.
      */
+    suspend fun close() {
+        sessionMutex.withLock {
+            withContext(Dispatchers.IO) {
+                val c = channelPtr
+                if (c != 0L) {
+                    channelPtr = 0L
+                    try { LibSsh.nativeChannelClose(c) } catch (_: Throwable) {}
+                    try { LibSsh.nativeChannelFree(c) } catch (_: Throwable) {}
+                }
+            }
+        }
+    }
+}
+
+/**
+ * A direct-tcpip channel for port forwarding. Supports bidirectional
+ * read/write and close. Uses the same session mutex as [ShellChannel]
+ * since all channels on a session must serialize access to libssh.
+ */
+class ForwardChannel internal constructor(
+    private var channelPtr: Long,
+    private val sessionMutex: Mutex,
+) {
+    /**
+     * Reads up to `buf.size` bytes from the forward channel (remote side).
+     * Returns bytes read, 0 on timeout, or negative on error/EOF.
+     */
+    suspend fun read(buf: ByteArray, timeoutMs: Int = 100): Int =
+        sessionMutex.withLock {
+            withContext(Dispatchers.IO) {
+                if (channelPtr == 0L) -1
+                else LibSsh.nativeChannelReadTimeout(channelPtr, buf, 0, timeoutMs)
+            }
+        }
+
+    /** Writes data to the forward channel (sent to remote endpoint). */
+    suspend fun write(data: ByteArray, off: Int = 0, len: Int = data.size): Int =
+        sessionMutex.withLock {
+            withContext(Dispatchers.IO) {
+                if (channelPtr == 0L) -1
+                else LibSsh.nativeChannelWrite(channelPtr, data, off, len)
+            }
+        }
+
+    suspend fun isEof(): Boolean =
+        sessionMutex.withLock {
+            withContext(Dispatchers.IO) {
+                channelPtr == 0L || LibSsh.nativeChannelIsEof(channelPtr) != 0
+            }
+        }
+
+    /** Closes and frees the underlying channel. Idempotent. */
     suspend fun close() {
         sessionMutex.withLock {
             withContext(Dispatchers.IO) {
