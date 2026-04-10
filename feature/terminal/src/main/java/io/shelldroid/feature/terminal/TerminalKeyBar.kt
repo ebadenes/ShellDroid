@@ -73,21 +73,7 @@ fun TerminalKeyBar(
             .padding(horizontal = 3.dp, vertical = 3.dp),
         verticalArrangement = Arrangement.spacedBy(3.dp),
     ) {
-        // ── Utility row: paste, copy, clear, snippets, keyboard ──
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(2.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            val w = Modifier.weight(1f)
-            KeyBarButton("📄", foreground, false, w) { haptic(); onPaste() }
-            KeyBarButton("📑", foreground, false, w) { haptic(); onCopyAll() }
-            KeyBarButton("🗑", foreground, false, w) { haptic(); onClear() }
-            KeyBarButton("📋", foreground, false, w) { haptic(); onRequestSnippets() }
-            KeyBarButton("⌨", foreground, false, w) { haptic(); onRequestShowKeyboard() }
-        }
-
-        // ── Row 1: ESC / | - HOME UP END PGUP FN ── (fills width)
+        // ── Row 1: ESC / | - HOME UP END PGUP FN + paste, clear ──
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(2.dp),
@@ -121,6 +107,8 @@ fun TerminalKeyBar(
             KeyBarButton("FN", foreground, fnMode, w) {
                 haptic(); fnMode = !fnMode
             }
+            KeyBarButton("📄", foreground, false, w) { haptic(); onPaste() }
+            KeyBarButton("🗑", foreground, false, w) { haptic(); onClear() }
         }
 
         // ── Row 2 ──
@@ -173,6 +161,12 @@ fun TerminalKeyBar(
                 }
                 KeyBarButton("PGDN", foreground, false, w) {
                     haptic(); emulator.dispatchKey(0, VTermKey.PAGEDOWN)
+                }
+                KeyBarButton("📋", foreground, false, w) {
+                    haptic(); onRequestSnippets()
+                }
+                KeyBarButton("⌨", foreground, false, w) {
+                    haptic(); onRequestShowKeyboard()
                 }
             }
         }

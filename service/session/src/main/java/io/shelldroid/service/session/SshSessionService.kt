@@ -114,19 +114,23 @@ class SshSessionService : LifecycleService() {
     }
 
     private fun buildNotification(active: Int): Notification {
-        val pluralEs = if (active == 1) "" else "es"
-        val pluralActiva = if (active == 1) "" else "s"
-        val title = if (active == 0) "ShellDroid" else "ShellDroid — $active sesión$pluralEs"
-        val text = if (active == 0) {
-            "Sin sesiones activas"
-        } else {
-            "$active sesión$pluralEs SSH activa$pluralActiva · tocá para abrir"
+        val labels = sessionManager.activeLabels()
+        val title = when {
+            active == 0 -> "ShellDroid"
+            active == 1 -> labels.firstOrNull() ?: "ShellDroid"
+            else -> "ShellDroid — $active sesiones"
+        }
+        val text = when {
+            active == 0 -> "Sin sesiones activas"
+            active == 1 -> "Conectado · toca para abrir"
+            else -> labels.joinToString(", ") + " · toca para abrir"
         }
 
         val firstHostId = sessionManager.activeHostIds().firstOrNull()
         val contentPi = launchPendingIntent(firstHostId)
         val actionPi = launchPendingIntent(firstHostId)
 
+        val connectTime = sessionManager.connectTimeMillis()
         val builder = NotificationCompat.Builder(this, CHANNEL_ID)
             .setSmallIcon(io.shelldroid.service.session.R.drawable.ic_notification)
             .setContentTitle(title)
@@ -134,6 +138,13 @@ class SshSessionService : LifecycleService() {
             .setOngoing(true)
             .setOnlyAlertOnce(true)
             .setPriority(NotificationCompat.PRIORITY_LOW)
+            .setSubText(if (labels.size > 1) "${labels.size} conexiones" else null)
+        // Show elapsed time as a live chronometer
+        if (connectTime > 0 && active > 0) {
+            builder.setWhen(connectTime)
+                .setUsesChronometer(true)
+                .setShowWhen(true)
+        }
 
         if (contentPi != null) builder.setContentIntent(contentPi)
         if (actionPi != null && firstHostId != null) {

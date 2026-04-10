@@ -33,6 +33,9 @@ class SshSessionManager @Inject constructor(
     private val serviceController: SessionServiceController = NoopSessionServiceController,
 ) {
     private val sessions = ConcurrentHashMap<String, LibSshClient>()
+    /** Labels for the notification: hostId → "user@host:port" */
+    private val sessionLabels = ConcurrentHashMap<String, String>()
+    private var _connectTime: Long = 0L
 
     private val _activeCountFlow = MutableStateFlow(0)
     /** Observable session count. The session service collects this. */
@@ -62,6 +65,8 @@ class SshSessionManager @Inject constructor(
         client.authenticate(config.auth, config.username).getOrThrow()
 
         sessions.put(config.hostId, client)?.disconnect()  // close any stale entry
+        sessionLabels[config.hostId] = "${config.username}@${config.hostname}:${config.port}"
+        if (_connectTime == 0L) _connectTime = System.currentTimeMillis()
         _activeCountFlow.value = sessions.size
         serviceController.ensureRunning()
         client
@@ -71,6 +76,8 @@ class SshSessionManager @Inject constructor(
 
     fun disconnect(hostId: String) {
         sessions.remove(hostId)?.disconnect()
+        sessionLabels.remove(hostId)
+        if (sessions.isEmpty()) _connectTime = 0L
         _activeCountFlow.value = sessions.size
     }
 
@@ -84,4 +91,10 @@ class SshSessionManager @Inject constructor(
     fun activeCount(): Int = sessions.size
 
     fun activeHostIds(): Set<String> = sessions.keys.toSet()
+
+    /** Labels for active sessions: "user@host:port" */
+    fun activeLabels(): List<String> = sessionLabels.values.toList()
+
+    /** Epoch millis when the first session connected (0 if none). */
+    fun connectTimeMillis(): Long = _connectTime
 }
