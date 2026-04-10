@@ -10,19 +10,36 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.core.content.ContextCompat
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.core.content.ContextCompat
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
 import dagger.hilt.android.AndroidEntryPoint
+import io.shelldroid.core.security.BiometricGate
+import io.shelldroid.core.security.LockManager
 import io.shelldroid.core.ui.ShellDroidTheme
 import io.shelldroid.feature.terminal.HardwareKeyInterceptor
 import io.shelldroid.feature.terminal.TerminalLaunchRequest
 import io.shelldroid.nav.ShellDroidNavHost
+import io.shelldroid.ui.lock.LockScreen
+import kotlinx.coroutines.launch
+import javax.inject.Inject
 
 @AndroidEntryPoint
 class MainActivity : AppCompatActivity() {
+
+    @Inject lateinit var lockManager: LockManager
+
+    private var isLocked by mutableStateOf(false)
+    private var lockError by mutableStateOf<String?>(null)
 
     private val notificationPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission(),
@@ -33,16 +50,70 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         maybeDispatchTerminalLaunch(intent)
         requestNotificationPermissionIfNeeded()
+        checkLockOnResume()
         setContent {
             ShellDroidTheme {
                 Surface(
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background,
                 ) {
-                    ShellDroidNavHost()
+                    Box(modifier = Modifier.fillMaxSize()) {
+                        ShellDroidNavHost()
+                        if (isLocked) {
+                            val biometricGate = BiometricGate(this@MainActivity)
+                            LockScreen(
+                                onPinSubmit = { pin -> verifyPin(pin) },
+                                onBiometricClick = { triggerBiometric(biometricGate) },
+                                biometricAvailable = biometricGate.isAvailable(),
+                                errorMessage = lockError,
+                            )
+                        }
+                    }
                 }
             }
         }
+    }
+
+    private fun checkLockOnResume() {
+        lifecycleScope.launch {
+            repeatOnLifecycle(Lifecycle.State.STARTED) {
+                isLocked = lockManager.isLocked()
+                if (isLocked) {
+                    // Try biometric immediately on resume if available
+                    val gate = BiometricGate(this@MainActivity)
+                    if (gate.isAvailable()) {
+                        triggerBiometric(gate)
+                    }
+                }
+            }
+        }
+    }
+
+    private fun verifyPin(pin: String) {
+        lifecycleScope.launch {
+            val valid = lockManager.verifyPin(pin.toCharArray())
+            if (valid) {
+                lockManager.markUnlocked()
+                isLocked = false
+                lockError = null
+            } else {
+                lockError = getString(io.shelldroid.core.ui.R.string.wrong_pin)
+            }
+        }
+    }
+
+    private fun triggerBiometric(gate: BiometricGate) {
+        gate.authenticate(
+            onSuccess = {
+                lifecycleScope.launch {
+                    lockManager.markUnlocked()
+                    isLocked = false
+                    lockError = null
+                }
+            },
+            onError = { _, _ -> },
+            onFailed = { },
+        )
     }
 
     override fun onNewIntent(intent: Intent) {

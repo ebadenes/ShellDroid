@@ -95,4 +95,12 @@
     <string name="quick_connect">Conexión rápida</string>
     <string name="auto_command">Comando inicial</string>
     <string name="auto_command_hint">Se ejecuta al conectar (opcional)</string>
+
+    <string name="enter_pin">Introduce tu PIN</string>
+    <string name="set_pin">Establece un PIN</string>
+    <string name="confirm_pin">Confirma el PIN</string>
+    <string name="wrong_pin">PIN incorrecto</string>
+    <string name="pin_mismatch">Los PINs no coinciden</string>
+    <string name="use_biometric">Usar huella dactilar</string>
+    <string name="unlock">Desbloquear</string>
 </resources>

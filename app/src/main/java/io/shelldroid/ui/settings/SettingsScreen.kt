@@ -3,10 +3,13 @@ package io.shelldroid.ui.settings
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -17,6 +20,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Slider
@@ -32,6 +36,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.res.stringResource
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -66,6 +72,17 @@ fun SettingsScreen(
     var showSkinPicker by remember { mutableStateOf(false) }
     var showThemeModePicker by remember { mutableStateOf(false) }
     var showLanguagePicker by remember { mutableStateOf(false) }
+    var showSetPinDialog by remember { mutableStateOf(false) }
+
+    if (showSetPinDialog) {
+        SetPinDialog(
+            onDismiss = { showSetPinDialog = false },
+            onConfirm = { pin ->
+                viewModel.setNewPin(pin)
+                showSetPinDialog = false
+            },
+        )
+    }
 
     if (showSkinPicker) {
         AlertDialog(
@@ -269,11 +286,15 @@ fun SettingsScreen(
                 trailingContent = {
                     Switch(
                         checked = state.pinLockEnabled,
-                        onCheckedChange = { viewModel.setPinLock(it) },
+                        onCheckedChange = { enabled ->
+                            if (enabled) showSetPinDialog = true
+                            else viewModel.setPinLock(false)
+                        },
                     )
                 },
                 modifier = Modifier.clickable {
-                    viewModel.setPinLock(!state.pinLockEnabled)
+                    if (!state.pinLockEnabled) showSetPinDialog = true
+                    else viewModel.setPinLock(false)
                 },
             )
 
@@ -317,5 +338,70 @@ private fun SectionHeader(title: String) {
         style = MaterialTheme.typography.labelLarge,
         color = MaterialTheme.colorScheme.primary,
         modifier = Modifier.padding(start = 16.dp, top = 24.dp, bottom = 8.dp),
+    )
+}
+
+@Composable
+private fun SetPinDialog(
+    onDismiss: () -> Unit,
+    onConfirm: (String) -> Unit,
+) {
+    var pin by remember { mutableStateOf("") }
+    var confirmPin by remember { mutableStateOf("") }
+    var error by remember { mutableStateOf<String?>(null) }
+    val mismatchMsg = stringResource(UiR.string.pin_mismatch)
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(UiR.string.set_pin)) },
+        text = {
+            Column {
+                OutlinedTextField(
+                    value = pin,
+                    onValueChange = { if (it.length <= 6 && it.all(Char::isDigit)) pin = it },
+                    label = { Text("PIN") },
+                    singleLine = true,
+                    visualTransformation = PasswordVisualTransformation(),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.NumberPassword),
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                OutlinedTextField(
+                    value = confirmPin,
+                    onValueChange = { if (it.length <= 6 && it.all(Char::isDigit)) confirmPin = it },
+                    label = { Text(stringResource(UiR.string.confirm_pin)) },
+                    singleLine = true,
+                    visualTransformation = PasswordVisualTransformation(),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.NumberPassword),
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                if (error != null) {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = error!!,
+                        color = MaterialTheme.colorScheme.error,
+                        style = MaterialTheme.typography.bodySmall,
+                    )
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(
+                onClick = {
+                    if (pin.length < 4) return@TextButton
+                    if (pin != confirmPin) {
+                        error = mismatchMsg
+                    } else {
+                        onConfirm(pin)
+                    }
+                },
+                enabled = pin.length >= 4,
+            ) {
+                Text(stringResource(UiR.string.save))
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text(stringResource(UiR.string.cancel)) }
+        },
     )
 }

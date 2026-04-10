@@ -4,19 +4,27 @@ import android.app.Application
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.os.Build
+import androidx.lifecycle.ProcessLifecycleOwner
 import dagger.hilt.android.HiltAndroidApp
+import io.shelldroid.core.security.AutoLockObserver
 import io.shelldroid.service.session.SshSessionService
+import javax.inject.Inject
 
 /**
  * Application class.
  *
  *  - `@HiltAndroidApp` enables constructor injection across the whole graph.
+ *  - Registers [AutoLockObserver] with the process lifecycle for PIN lock.
  *  - Creates the notification channel used by [SshSessionService] on startup.
  */
 @HiltAndroidApp
 class ShellDroidApp : Application() {
+
+    @Inject lateinit var autoLockObserver: AutoLockObserver
+
     override fun onCreate() {
         super.onCreate()
+        ProcessLifecycleOwner.get().lifecycle.addObserver(autoLockObserver)
         createNotificationChannels()
     }
 

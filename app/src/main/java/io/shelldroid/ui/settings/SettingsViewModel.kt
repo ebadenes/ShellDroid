@@ -8,6 +8,7 @@ import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import io.shelldroid.core.db.dao.KnownHostDao
+import io.shelldroid.core.security.LockManager
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.core.os.LocaleListCompat
 import io.shelldroid.core.ui.AppTheme
@@ -40,6 +41,7 @@ data class SettingsState(
 class SettingsViewModel @Inject constructor(
     private val skinRepository: TerminalSkinRepository,
     private val knownHostDao: KnownHostDao,
+    private val lockManager: LockManager,
     @ApplicationContext private val appContext: android.content.Context,
 ) : ViewModel() {
 
@@ -52,6 +54,12 @@ class SettingsViewModel @Inject constructor(
             appVersion = getAppVersion(),
         )
     )
+
+    init {
+        viewModelScope.launch {
+            _state.value = _state.value.copy(pinLockEnabled = lockManager.hasPin())
+        }
+    }
 
     private fun currentLanguage(): AppLanguage {
         val locales = AppCompatDelegate.getApplicationLocales()
@@ -99,9 +107,31 @@ class SettingsViewModel @Inject constructor(
         // pref is wired.
     }
 
+    /**
+     * When disabling PIN lock, clear immediately. When enabling, the UI must
+     * first collect a PIN via [setNewPin] — this method only updates the state
+     * optimistically when enabling (the actual PIN is set by [setNewPin]).
+     */
     fun setPinLock(enabled: Boolean) {
-        _state.value = _state.value.copy(pinLockEnabled = enabled)
-        // TODO: wire to LockManager.setEnabled / BiometricGate
+        if (!enabled) {
+            viewModelScope.launch {
+                lockManager.clearPin()
+                _state.value = _state.value.copy(pinLockEnabled = false)
+            }
+        }
+        // When enabling, the SettingsScreen must show SetPinDialog; the actual
+        // enabling happens in setNewPin().
+    }
+
+    /**
+     * Called by the Set PIN dialog after the user confirms matching PINs.
+     */
+    fun setNewPin(pin: String) {
+        viewModelScope.launch {
+            lockManager.setPin(pin.toCharArray())
+            lockManager.markUnlocked()
+            _state.value = _state.value.copy(pinLockEnabled = true)
+        }
     }
 
     fun clearKnownHosts() {
