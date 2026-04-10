@@ -80,11 +80,10 @@ fun HostsScreen(
     var showQuickConnect by remember { mutableStateOf(false) }
     var overflowExpanded by remember { mutableStateOf(false) }
 
-    // Quick Connect dialog — single-line format: user@host:port
-    // No password field: auth happens interactively in the terminal
-    // (keyboard-interactive, or the server prompts for a password).
+    // Quick Connect dialog — user@host:port + optional password
     if (showQuickConnect) {
         var qcInput by remember { mutableStateOf("root@") }
+        var qcPassword by remember { mutableStateOf("") }
         var qcSave by remember { mutableStateOf(false) }
 
         AlertDialog(
@@ -99,6 +98,14 @@ fun HostsScreen(
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true,
                         placeholder = { Text("root@192.168.1.1:22") },
+                    )
+                    OutlinedTextField(
+                        value = qcPassword,
+                        onValueChange = { qcPassword = it },
+                        label = { Text("${stringResource(UiR.string.password)} (opcional)") },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true,
+                        visualTransformation = PasswordVisualTransformation(),
                     )
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Checkbox(
@@ -116,7 +123,7 @@ fun HostsScreen(
                         if (parsed != null) {
                             viewModel.quickConnect(
                                 parsed.first, parsed.second, parsed.third,
-                                "", qcSave,
+                                qcPassword, qcSave,
                             )
                             showQuickConnect = false
                         }
@@ -151,6 +158,39 @@ fun HostsScreen(
         )
     }
 
+    // Password prompt for hosts without identity
+    val needsPasswordState = connectState as? HostsListViewModel.ConnectState.NeedsPassword
+    if (needsPasswordState != null) {
+        var pwInput by remember { mutableStateOf("") }
+        AlertDialog(
+            onDismissRequest = { viewModel.resetConnectState() },
+            title = { Text(stringResource(UiR.string.password)) },
+            text = {
+                OutlinedTextField(
+                    value = pwInput,
+                    onValueChange = { pwInput = it },
+                    label = { Text(stringResource(UiR.string.password)) },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true,
+                    visualTransformation = PasswordVisualTransformation(),
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        viewModel.connectWithPassword(needsPasswordState.hostId, pwInput)
+                    },
+                    enabled = pwInput.isNotEmpty(),
+                ) { Text(stringResource(UiR.string.connect)) }
+            },
+            dismissButton = {
+                TextButton(onClick = { viewModel.resetConnectState() }) {
+                    Text(stringResource(UiR.string.cancel))
+                }
+            },
+        )
+    }
+
     LaunchedEffect(connectState) {
         when (val s = connectState) {
             is HostsListViewModel.ConnectState.Error -> {
@@ -158,7 +198,6 @@ fun HostsScreen(
                 viewModel.resetConnectState()
             }
             is HostsListViewModel.ConnectState.Connected -> {
-                snackbarHostState.showSnackbar("Conectado")
                 viewModel.resetConnectState()
             }
             else -> Unit

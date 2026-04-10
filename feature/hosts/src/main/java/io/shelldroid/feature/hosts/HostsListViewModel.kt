@@ -40,10 +40,18 @@ class HostsListViewModel @Inject constructor(
         data class Connecting(val hostId: String) : ConnectState()
         data class Connected(val hostId: String) : ConnectState()
         data class Error(val hostId: String, val message: String) : ConnectState()
+        data class NeedsPassword(val hostId: String) : ConnectState()
     }
 
     private val _connectState = MutableStateFlow<ConnectState>(ConnectState.Idle)
     val connectState: StateFlow<ConnectState> = _connectState.asStateFlow()
+    @Volatile private var _pendingPassword: String? = null
+
+    /** Set password then retry connect for hosts without identity. */
+    fun connectWithPassword(hostId: String, password: String) {
+        _pendingPassword = password
+        connect(hostId)
+    }
 
     fun connect(hostId: String) {
         viewModelScope.launch {
@@ -62,8 +70,8 @@ class HostsListViewModel @Inject constructor(
                 return@launch
             }
             // Build auth method: if host has an identity, use it;
-            // otherwise connect with empty password (keyboard-interactive
-            // or the server will prompt).
+            // otherwise check if a password was provided via
+            // pendingPasswordForHost, or fail with NeedsPassword state.
             val authMethod = run {
                 val identityId = host.identityId
                 if (identityId != null) {
@@ -87,8 +95,14 @@ class HostsListViewModel @Inject constructor(
                         return@launch
                     }
                 } else {
-                    // No identity — try with empty password (keyboard-interactive)
-                    AuthMethod.Password(CharArray(0))
+                    // No identity — use pending password if available
+                    val pw = _pendingPassword
+                    _pendingPassword = null
+                    if (pw.isNullOrEmpty()) {
+                        _connectState.value = ConnectState.NeedsPassword(hostId)
+                        return@launch
+                    }
+                    AuthMethod.Password(pw.toCharArray())
                 }
             }
             val config = SshConfig(

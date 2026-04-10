@@ -49,6 +49,9 @@ fun TerminalKeyBar(
     foreground: Color,
     onRequestShowKeyboard: () -> Unit,
     onRequestSnippets: () -> Unit,
+    onPaste: () -> Unit = {},
+    onCopyAll: () -> Unit = {},
+    onClear: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     val view = LocalView.current
@@ -70,6 +73,20 @@ fun TerminalKeyBar(
             .padding(horizontal = 3.dp, vertical = 3.dp),
         verticalArrangement = Arrangement.spacedBy(3.dp),
     ) {
+        // ── Utility row: paste, copy, clear, snippets, keyboard ──
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(2.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            val w = Modifier.weight(1f)
+            KeyBarButton("📄", foreground, false, w) { haptic(); onPaste() }
+            KeyBarButton("📑", foreground, false, w) { haptic(); onCopyAll() }
+            KeyBarButton("🗑", foreground, false, w) { haptic(); onClear() }
+            KeyBarButton("📋", foreground, false, w) { haptic(); onRequestSnippets() }
+            KeyBarButton("⌨", foreground, false, w) { haptic(); onRequestShowKeyboard() }
+        }
+
         // ── Row 1: ESC / | - HOME UP END PGUP FN ── (fills width)
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -156,12 +173,6 @@ fun TerminalKeyBar(
                 }
                 KeyBarButton("PGDN", foreground, false, w) {
                     haptic(); emulator.dispatchKey(0, VTermKey.PAGEDOWN)
-                }
-                KeyBarButton("\uD83D\uDCCB", foreground, false, w) {
-                    haptic(); onRequestSnippets()
-                }
-                KeyBarButton("\u2328", foreground, false, w) {
-                    haptic(); onRequestShowKeyboard()
                 }
             }
         }
