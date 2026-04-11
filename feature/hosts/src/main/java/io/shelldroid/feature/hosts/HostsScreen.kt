@@ -113,7 +113,7 @@ fun HostsScreen(
                     OutlinedTextField(
                         value = qcPassword,
                         onValueChange = { qcPassword = it },
-                        label = { Text("${stringResource(UiR.string.password)} (opcional)") },
+                        label = { Text(stringResource(UiR.string.password_optional)) },
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true,
                         visualTransformation = PasswordVisualTransformation(),

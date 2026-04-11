@@ -8,6 +8,7 @@
     <string name="delete">Delete</string>
     <string name="save">Save</string>
     <string name="save_connection">Save connection</string>
+    <string name="password_optional">Password (optional)</string>
     <string name="snippet_no_active_session">Open a terminal first to run snippets</string>
     <string name="snippet_choose_session">Choose session</string>
     <string name="fgs_channel_name">Active SSH sessions</string>
