@@ -7,6 +7,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
+import io.shelldroid.core.db.AppPreferences
 import io.shelldroid.core.db.dao.KnownHostDao
 import io.shelldroid.core.security.LockManager
 import androidx.appcompat.app.AppCompatDelegate
@@ -16,6 +17,7 @@ import io.shelldroid.core.ui.ThemeMode
 import io.shelldroid.feature.terminal.skin.BuiltInSkins
 import io.shelldroid.feature.terminal.skin.TerminalSkin
 import io.shelldroid.feature.terminal.skin.TerminalSkinRepository
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -42,6 +44,7 @@ class SettingsViewModel @Inject constructor(
     private val skinRepository: TerminalSkinRepository,
     private val knownHostDao: KnownHostDao,
     private val lockManager: LockManager,
+    private val appPreferences: AppPreferences,
     @ApplicationContext private val appContext: android.content.Context,
 ) : ViewModel() {
 
@@ -57,7 +60,10 @@ class SettingsViewModel @Inject constructor(
 
     init {
         viewModelScope.launch {
-            _state.value = _state.value.copy(pinLockEnabled = lockManager.hasPin())
+            _state.value = _state.value.copy(
+                pinLockEnabled = lockManager.hasPin(),
+                keepScreenOn = appPreferences.keepScreenOnFlow.first(),
+            )
         }
     }
 
@@ -102,9 +108,7 @@ class SettingsViewModel @Inject constructor(
 
     fun setKeepScreenOn(on: Boolean) {
         _state.value = _state.value.copy(keepScreenOn = on)
-        // TODO: persist to DataStore. The actual FLAG_KEEP_SCREEN_ON is
-        // applied by TerminalScreen via a DisposableEffect when this
-        // pref is wired.
+        viewModelScope.launch { appPreferences.setKeepScreenOn(on) }
     }
 
     /**

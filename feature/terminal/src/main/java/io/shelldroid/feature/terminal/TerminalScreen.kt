@@ -81,6 +81,7 @@ fun TerminalScreen(
 ) {
     val title by viewModel.title.collectAsStateWithLifecycle()
     val skin by viewModel.skin.collectAsStateWithLifecycle()
+    val keepScreenOn by viewModel.keepScreenOn.collectAsStateWithLifecycle()
     val bridge by viewModel.bridge.collectAsStateWithLifecycle()
     val emulator by (bridge?.emulator
         ?: kotlinx.coroutines.flow.MutableStateFlow(null))
@@ -101,10 +102,16 @@ fun TerminalScreen(
     var showBackDialog by remember { mutableStateOf(false) }
     var showSnippetPicker by remember { mutableStateOf(false) }
 
-    // Keep screen on while in terminal (reads from Settings pref)
+    // Keep screen on while in terminal — only when the user has enabled
+    // the preference in Settings. Re-keyed on `keepScreenOn` so toggling
+    // it from Settings takes effect immediately on return.
     val activity = context as? Activity
-    DisposableEffect(Unit) {
-        activity?.window?.addFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+    DisposableEffect(keepScreenOn) {
+        if (keepScreenOn) {
+            activity?.window?.addFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        } else {
+            activity?.window?.clearFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        }
         onDispose {
             activity?.window?.clearFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         }

@@ -4,6 +4,7 @@ import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
+import io.shelldroid.core.db.AppPreferences
 import io.shelldroid.core.db.dao.HostDao
 import io.shelldroid.core.db.entities.Snippet
 import io.shelldroid.core.ssh.PendingAutoCommand
@@ -36,10 +37,15 @@ class TerminalViewModel @Inject constructor(
     private val bridgeRegistry: TerminalBridgeRegistry,
     private val snippetRepo: SnippetRepository,
     private val skinRepository: TerminalSkinRepository,
+    private val appPreferences: AppPreferences,
 ) : ViewModel() {
 
     val skin: StateFlow<TerminalSkin> = skinRepository.selected
         .stateIn(viewModelScope, SharingStarted.Eagerly, skinRepository.current())
+
+    /** User-controlled "keep screen on while in terminal" preference. */
+    val keepScreenOn: StateFlow<Boolean> = appPreferences.keepScreenOnFlow
+        .stateIn(viewModelScope, SharingStarted.Eagerly, false)
 
     /** All snippets, observable for the snippet picker dialog. */
     val snippets: StateFlow<List<Snippet>> = snippetRepo.observeAll()
