@@ -56,13 +56,24 @@ class TerminalViewModel @Inject constructor(
      * Appends a newline so the command actually executes.
      */
     fun runSnippet(snippet: Snippet) {
+        sendCommand(snippet.command)
+    }
+
+    /**
+     * Send a raw command (plus newline) to the active bridge. Used both
+     * by the in-terminal snippet picker ([runSnippet]) and by the
+     * pending-auto-command drain in TerminalScreen.
+     *
+     * Waits for the bridge to be in the Running state before sending so
+     * a command dispatched during connect is sent to the remote shell
+     * and not dropped on the floor.
+     */
+    fun sendCommand(command: String) {
         val b = _bridge.value ?: return
-        val cmd = snippet.command + "\n"
-        // The bridge's onKeyboardInput callback normally routes through
-        // the writeChannel. We reuse the same path so the bytes flow
-        // through the writer coroutine and are serialized with the user's
-        // own keystrokes.
-        b.sendInput(cmd.toByteArray(Charsets.UTF_8))
+        viewModelScope.launch {
+            b.state.first { it is TerminalBridge.State.Running }
+            b.sendInput((command + "\n").toByteArray(Charsets.UTF_8))
+        }
     }
 
     private val _title = MutableStateFlow("Terminal")
@@ -117,14 +128,9 @@ class TerminalViewModel @Inject constructor(
             ansiPalette = currentSkin.ansi,
         )
 
-        // Dispatch pending auto-command once the shell is running.
-        val autoCmd = PendingAutoCommand.take(hostId)
-        if (autoCmd != null) {
-            viewModelScope.launch {
-                b.state.first { it is TerminalBridge.State.Running }
-                b.sendInput((autoCmd + "\n").toByteArray(Charsets.UTF_8))
-            }
-        }
+        // Pending auto-command / dispatched snippet — drained by
+        // TerminalScreen via repeatOnLifecycle(STARTED) so warm re-entry
+        // after the user ran a snippet from SnippetsScreen also picks up.
     }
 
     /**

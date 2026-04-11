@@ -1,5 +1,6 @@
 package io.shelldroid.feature.hosts
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -12,6 +13,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
@@ -58,6 +60,8 @@ import androidx.compose.runtime.setValue
 import io.shelldroid.core.db.entities.Host
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
@@ -78,6 +82,7 @@ fun HostsScreen(
 ) {
     val hosts by viewModel.hosts.collectAsState()
     val connectState by viewModel.connectState.collectAsState()
+    val activeHostIds by viewModel.activeHostIds.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
     var hostToDelete by remember { mutableStateOf<Host?>(null) }
     var showQuickConnect by remember { mutableStateOf(false) }
@@ -337,6 +342,7 @@ fun HostsScreen(
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     items(hosts, key = { it.id }) { host ->
+                        val isActive = host.id in activeHostIds
                         Card(
                             modifier = Modifier.fillMaxWidth(),
                             onClick = { viewModel.connect(host.id) },
@@ -347,7 +353,22 @@ fun HostsScreen(
                                     .padding(horizontal = 12.dp, vertical = 8.dp),
                                 verticalAlignment = Alignment.CenterVertically,
                             ) {
-                                Column(modifier = Modifier.weight(1f)) {
+                                // Connected indicator dot — same palette as
+                                // the port-forward status dots for consistency.
+                                Box(
+                                    modifier = Modifier
+                                        .size(10.dp)
+                                        .clip(CircleShape)
+                                        .background(
+                                            if (isActive) Color(0xFF4CAF50) // green
+                                            else Color(0xFF9E9E9E),         // grey
+                                        ),
+                                )
+                                Column(
+                                    modifier = Modifier
+                                        .padding(start = 10.dp)
+                                        .weight(1f),
+                                ) {
                                     Text(host.name, style = MaterialTheme.typography.titleMedium)
                                     Text(
                                         "${host.username}@${host.hostname}:${host.port}",

@@ -9,12 +9,17 @@ import io.shelldroid.core.db.entities.Host
 import io.shelldroid.core.db.entities.PortForward
 import io.shelldroid.core.ssh.ForwardState
 import io.shelldroid.core.ssh.ForwardStatus
+import io.shelldroid.core.ssh.HostConnector
 import io.shelldroid.core.ssh.PortForwardManager
 import io.shelldroid.feature.portforward.data.PortForwardRepository
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
@@ -28,7 +33,27 @@ class PortForwardsListViewModel @Inject constructor(
     private val repo: PortForwardRepository,
     private val hostDao: HostDao,
     private val portForwardManager: PortForwardManager,
+    private val hostConnector: HostConnector,
 ) : ViewModel() {
+
+    /**
+     * Transient UI events that the screen surfaces as snackbars — auto-
+     * connect errors, "host needs password", etc. Uses a SharedFlow with
+     * bufferOverflow = DROP_OLDEST so rapid taps don't queue stale
+     * messages.
+     */
+    private val _events = MutableSharedFlow<UiEvent>(
+        replay = 0,
+        extraBufferCapacity = 4,
+        onBufferOverflow = BufferOverflow.DROP_OLDEST,
+    )
+    val events: SharedFlow<UiEvent> = _events.asSharedFlow()
+
+    sealed class UiEvent {
+        data class Info(val message: String) : UiEvent()
+        data class Error(val message: String) : UiEvent()
+        data class NeedsPassword(val hostId: String) : UiEvent()
+    }
 
     data class Grouped(
         val host: Host?,
@@ -73,18 +98,55 @@ class PortForwardsListViewModel @Inject constructor(
         }
     }
 
-    /** Starts a LOCAL forward tunnel. REMOTE/DYNAMIC are not yet supported. */
+    /**
+     * Starts a LOCAL or DYNAMIC forward tunnel. If the SSH session for
+     * the host isn't live yet, auto-connects first via [HostConnector]
+     * so the user can tap Play without having to open the host tab.
+     * REMOTE is tracked in the post-v1 TODO.
+     */
     fun startForward(pf: PortForward) {
-        if (pf.type != PortForwardType.LOCAL) return // TODO: REMOTE, DYNAMIC
-        val remoteHost = pf.remoteHost ?: return
-        val remotePort = pf.remotePort ?: return
-        portForwardManager.startLocal(
-            forwardId = pf.id,
-            hostId = pf.hostId,
-            localPort = pf.localPort,
-            remoteHost = remoteHost,
-            remotePort = remotePort,
-        )
+        viewModelScope.launch {
+            when (val r = hostConnector.ensureConnected(pf.hostId)) {
+                HostConnector.Result.Success, HostConnector.Result.AlreadyConnected -> {
+                    startTunnel(pf)
+                }
+                is HostConnector.Result.NeedsPassword -> {
+                    _events.tryEmit(UiEvent.NeedsPassword(r.hostId))
+                }
+                is HostConnector.Result.HostNotFound -> {
+                    _events.tryEmit(UiEvent.Error("Host no encontrado"))
+                }
+                is HostConnector.Result.Error -> {
+                    _events.tryEmit(UiEvent.Error(r.message))
+                }
+            }
+        }
+    }
+
+    private fun startTunnel(pf: PortForward) {
+        when (pf.type) {
+            PortForwardType.LOCAL -> {
+                val remoteHost = pf.remoteHost ?: return
+                val remotePort = pf.remotePort ?: return
+                portForwardManager.startLocal(
+                    forwardId = pf.id,
+                    hostId = pf.hostId,
+                    localPort = pf.localPort,
+                    remoteHost = remoteHost,
+                    remotePort = remotePort,
+                )
+            }
+            PortForwardType.DYNAMIC -> {
+                portForwardManager.startDynamic(
+                    forwardId = pf.id,
+                    hostId = pf.hostId,
+                    localPort = pf.localPort,
+                )
+            }
+            PortForwardType.REMOTE -> {
+                // Post-v1 — see internal/docs/post_v1_todo.md
+            }
+        }
     }
 
     /** Stops a running tunnel. */

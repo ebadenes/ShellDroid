@@ -121,7 +121,11 @@ fun ShellDroidNavHost(navController: NavHostController = rememberNavController()
             SnippetsScreen(
                 onAddSnippet = { navController.navigate(Routes.snippetEdit()) },
                 onEditSnippet = { id -> navController.navigate(Routes.snippetEdit(id)) },
-                onRunSnippet = { /* TODO wire to terminal */ },
+                onOpenTerminal = { hostId ->
+                    navController.navigate(Routes.terminal(hostId)) {
+                        launchSingleTop = true
+                    }
+                },
                 onBack = { navController.popBackStack() },
             )
         }

@@ -57,7 +57,10 @@ import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.repeatOnLifecycle
 import io.shelldroid.core.ui.R as UiR
 import org.connectbot.terminal.Terminal
 
@@ -147,6 +150,17 @@ fun TerminalScreen(
     // Attach on first composition
     LaunchedEffect(hostId, skin.background, skin.foreground) {
         viewModel.attach(hostId, 80, 24, skin.foreground, skin.background)
+    }
+
+    // Drain PendingAutoCommand every time the screen enters STARTED.
+    // Covers both cold attach (auto-command on first connect) and warm
+    // re-entry after the user dispatched a snippet from SnippetsScreen.
+    val lifecycleOwner = LocalLifecycleOwner.current
+    LaunchedEffect(hostId, lifecycleOwner) {
+        lifecycleOwner.lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) {
+            val cmd = io.shelldroid.core.ssh.PendingAutoCommand.take(hostId)
+            if (cmd != null) viewModel.sendCommand(cmd)
+        }
     }
 
     // Volume keys zoom

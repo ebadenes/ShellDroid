@@ -10,6 +10,7 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
@@ -45,6 +46,9 @@ class MainActivity : AppCompatActivity() {
     ) { /* granted or not — the FGS runs either way, notif just won't show */ }
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        // Must be called BEFORE super.onCreate — transitions the window
+        // from Theme.ShellDroid.Starting (splash) to Theme.ShellDroid.
+        installSplashScreen()
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
         maybeDispatchTerminalLaunch(intent)

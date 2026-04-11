@@ -26,13 +26,18 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import kotlinx.coroutines.launch
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
@@ -47,12 +52,66 @@ import io.shelldroid.core.db.entities.Snippet
 fun SnippetsScreen(
     onAddSnippet: () -> Unit = {},
     onEditSnippet: (String) -> Unit = {},
-    onRunSnippet: (Snippet) -> Unit = {},
+    onOpenTerminal: (String) -> Unit = {},
     onBack: () -> Unit = {},
     viewModel: SnippetsListViewModel = hiltViewModel(),
 ) {
     val snippets by viewModel.snippets.collectAsState()
+    val activeSessions by viewModel.activeSessions.collectAsState()
     var snippetToDelete by remember { mutableStateOf<Snippet?>(null) }
+    var snippetToRun by remember { mutableStateOf<Snippet?>(null) }
+    val snackbarHostState = remember { SnackbarHostState() }
+    val scope = rememberCoroutineScope()
+    val noSessionsMsg = stringResource(UiR.string.snippet_no_active_session)
+
+    LaunchedEffect(Unit) { viewModel.refreshActiveSessions() }
+
+    // Session picker: one active → run immediately; many → show picker;
+    // zero → snackbar hint.
+    if (snippetToRun != null) {
+        val s = snippetToRun!!
+        when {
+            activeSessions.isEmpty() -> {
+                LaunchedEffect(s.id) {
+                    snackbarHostState.showSnackbar(noSessionsMsg)
+                    snippetToRun = null
+                }
+            }
+            activeSessions.size == 1 -> {
+                LaunchedEffect(s.id) {
+                    val session = activeSessions.first()
+                    viewModel.dispatchToSession(session.hostId, s)
+                    snippetToRun = null
+                    onOpenTerminal(session.hostId)
+                }
+            }
+            else -> {
+                AlertDialog(
+                    onDismissRequest = { snippetToRun = null },
+                    title = { Text(stringResource(UiR.string.snippet_choose_session)) },
+                    text = {
+                        Column {
+                            activeSessions.forEach { session ->
+                                TextButton(
+                                    onClick = {
+                                        viewModel.dispatchToSession(session.hostId, s)
+                                        snippetToRun = null
+                                        onOpenTerminal(session.hostId)
+                                    },
+                                    modifier = Modifier.fillMaxWidth(),
+                                ) { Text(session.label) }
+                            }
+                        }
+                    },
+                    confirmButton = {
+                        TextButton(onClick = { snippetToRun = null }) {
+                            Text(stringResource(UiR.string.cancel))
+                        }
+                    },
+                )
+            }
+        }
+    }
 
     if (snippetToDelete != null) {
         AlertDialog(
@@ -89,6 +148,7 @@ fun SnippetsScreen(
                 Icon(Icons.Default.Add, contentDescription = "Add snippet")
             }
         },
+        snackbarHost = { SnackbarHost(snackbarHostState) },
     ) { padding ->
         Box(Modifier.fillMaxSize().padding(padding)) {
             if (snippets.isEmpty()) {
@@ -122,7 +182,7 @@ fun SnippetsScreen(
                                 IconButton(onClick = { viewModel.clone(snippet) }) {
                                     Icon(Icons.Default.ContentCopy, contentDescription = "Clone")
                                 }
-                                IconButton(onClick = { onRunSnippet(snippet) }) {
+                                IconButton(onClick = { snippetToRun = snippet }) {
                                     Icon(Icons.Default.PlayArrow, contentDescription = "Run")
                                 }
                                 IconButton(onClick = { onEditSnippet(snippet.id) }) {

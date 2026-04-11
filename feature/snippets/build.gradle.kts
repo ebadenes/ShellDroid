@@ -28,6 +28,7 @@ kotlin {
 dependencies {
     implementation(project(":core:ui"))
     implementation(project(":core:db"))
+    implementation(project(":core:ssh"))
 
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.bundles.compose)

@@ -31,6 +31,7 @@ kotlin {
 dependencies {
     implementation(project(":core:ssh-native"))
     implementation(project(":core:db"))
+    implementation(project(":core:security"))
     implementation(libs.kotlinx.coroutines.core)
     implementation(libs.kotlinx.coroutines.android)
     implementation(libs.hilt.android)

@@ -7,6 +7,7 @@ import android.os.Build
 import androidx.lifecycle.ProcessLifecycleOwner
 import dagger.hilt.android.HiltAndroidApp
 import io.shelldroid.core.security.AutoLockObserver
+import io.shelldroid.core.ui.R as UiR
 import io.shelldroid.service.session.SshSessionService
 import javax.inject.Inject
 
@@ -33,10 +34,10 @@ class ShellDroidApp : Application() {
             val nm = getSystemService(NotificationManager::class.java)
             val channel = NotificationChannel(
                 SshSessionService.CHANNEL_ID,
-                SshSessionService.CHANNEL_NAME,
+                getString(UiR.string.fgs_channel_name),
                 NotificationManager.IMPORTANCE_LOW,
             ).apply {
-                description = "Notificación persistente cuando hay sesiones SSH activas"
+                description = getString(UiR.string.fgs_channel_desc)
                 setShowBadge(false)
             }
             nm.createNotificationChannel(channel)

@@ -39,6 +39,9 @@ class HostsListViewModel @Inject constructor(
     val identities: StateFlow<List<Identity>> = identityRepo.observeAll()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
+    /** Observable set of currently-connected hostIds — drives the status dot. */
+    val activeHostIds: StateFlow<Set<String>> = sessionManager.activeHostIdsFlow
+
     sealed class ConnectState {
         data object Idle : ConnectState()
         data class Connecting(val hostId: String) : ConnectState()

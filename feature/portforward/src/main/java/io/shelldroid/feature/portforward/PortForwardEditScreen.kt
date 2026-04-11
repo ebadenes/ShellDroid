@@ -120,9 +120,15 @@ fun PortForwardEditScreen(
                 TypeButton(m, "LOCAL", form.type == PortForwardType.LOCAL) {
                     viewModel.onType(PortForwardType.LOCAL)
                 }
-                TypeButton(m, "REMOTE", form.type == PortForwardType.REMOTE) {
-                    viewModel.onType(PortForwardType.REMOTE)
-                }
+                // REMOTE forwarding is post-v1 — disabled with a "coming
+                // soon" label so users see it is planned.
+                TypeButton(
+                    modifier = m,
+                    label = stringResource(UiR.string.port_forward_remote_soon),
+                    selected = form.type == PortForwardType.REMOTE,
+                    enabled = false,
+                    onClick = {},
+                )
                 TypeButton(m, "DYNAMIC", form.type == PortForwardType.DYNAMIC) {
                     viewModel.onType(PortForwardType.DYNAMIC)
                 }
@@ -191,11 +197,12 @@ private fun TypeButton(
     modifier: Modifier,
     label: String,
     selected: Boolean,
+    enabled: Boolean = true,
     onClick: () -> Unit,
 ) {
     if (selected) {
-        Button(onClick = onClick, modifier = modifier) { Text(label) }
+        Button(onClick = onClick, modifier = modifier, enabled = enabled) { Text(label) }
     } else {
-        OutlinedButton(onClick = onClick, modifier = modifier) { Text(label) }
+        OutlinedButton(onClick = onClick, modifier = modifier, enabled = enabled) { Text(label) }
     }
 }

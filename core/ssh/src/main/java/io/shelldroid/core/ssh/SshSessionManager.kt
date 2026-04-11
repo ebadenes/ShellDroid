@@ -41,6 +41,13 @@ class SshSessionManager @Inject constructor(
     /** Observable session count. The session service collects this. */
     val activeCountFlow: StateFlow<Int> = _activeCountFlow.asStateFlow()
 
+    private val _activeHostIdsFlow = MutableStateFlow<Set<String>>(emptySet())
+    /**
+     * Observable set of connected hostIds. Host list UI subscribes so the
+     * "connected" indicator dot can light up without polling.
+     */
+    val activeHostIdsFlow: StateFlow<Set<String>> = _activeHostIdsFlow.asStateFlow()
+
     suspend fun connect(config: SshConfig): Result<LibSshClient> = runCatching {
         val client = LibSshClient()
         client.connect(config).getOrThrow()
@@ -68,6 +75,7 @@ class SshSessionManager @Inject constructor(
         sessionLabels[config.hostId] = "${config.username}@${config.hostname}:${config.port}"
         if (_connectTime == 0L) _connectTime = System.currentTimeMillis()
         _activeCountFlow.value = sessions.size
+        _activeHostIdsFlow.value = sessions.keys.toSet()
         serviceController.ensureRunning()
         client
     }
@@ -79,12 +87,14 @@ class SshSessionManager @Inject constructor(
         sessionLabels.remove(hostId)
         if (sessions.isEmpty()) _connectTime = 0L
         _activeCountFlow.value = sessions.size
+        _activeHostIdsFlow.value = sessions.keys.toSet()
     }
 
     fun disconnectAll() {
         val snapshot = sessions.values.toList()
         sessions.clear()
         _activeCountFlow.value = 0
+        _activeHostIdsFlow.value = emptySet()
         snapshot.forEach { it.disconnect() }
     }
 

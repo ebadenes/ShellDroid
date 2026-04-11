@@ -13,6 +13,7 @@ import androidx.lifecycle.LifecycleService
 import androidx.lifecycle.lifecycleScope
 import dagger.hilt.android.AndroidEntryPoint
 import io.shelldroid.core.ssh.SshSessionManager
+import io.shelldroid.core.ui.R as UiR
 import javax.inject.Inject
 import kotlinx.coroutines.launch
 
@@ -116,14 +117,16 @@ class SshSessionService : LifecycleService() {
     private fun buildNotification(active: Int): Notification {
         val labels = sessionManager.activeLabels()
         val title = when {
-            active == 0 -> "ShellDroid"
-            active == 1 -> labels.firstOrNull() ?: "ShellDroid"
-            else -> "ShellDroid — $active sesiones"
+            active == 0 -> getString(UiR.string.app_name)
+            active == 1 -> labels.firstOrNull()?.let {
+                getString(UiR.string.fgs_title_one, it)
+            } ?: getString(UiR.string.app_name)
+            else -> getString(UiR.string.fgs_title_many, active)
         }
         val text = when {
-            active == 0 -> "Sin sesiones activas"
-            active == 1 -> "Conectado · toca para abrir"
-            else -> labels.joinToString(", ") + " · toca para abrir"
+            active == 0 -> getString(UiR.string.fgs_text_zero)
+            active == 1 -> getString(UiR.string.fgs_text_one)
+            else -> getString(UiR.string.fgs_text_many, labels.joinToString(", "))
         }
 
         val firstHostId = sessionManager.activeHostIds().firstOrNull()
@@ -138,7 +141,9 @@ class SshSessionService : LifecycleService() {
             .setOngoing(true)
             .setOnlyAlertOnce(true)
             .setPriority(NotificationCompat.PRIORITY_LOW)
-            .setSubText(if (labels.size > 1) "${labels.size} conexiones" else null)
+            .setSubText(
+                if (labels.size > 1) getString(UiR.string.fgs_subtext, labels.size) else null,
+            )
         // Show elapsed time as a live chronometer
         if (connectTime > 0 && active > 0) {
             builder.setWhen(connectTime)
@@ -150,7 +155,7 @@ class SshSessionService : LifecycleService() {
         if (actionPi != null && firstHostId != null) {
             builder.addAction(
                 android.R.drawable.ic_menu_view,
-                "Abrir terminal",
+                getString(UiR.string.fgs_action_open),
                 actionPi,
             )
         }
@@ -167,7 +172,7 @@ class SshSessionService : LifecycleService() {
         )
         builder.addAction(
             android.R.drawable.ic_menu_close_clear_cancel,
-            "Desconectar",
+            getString(UiR.string.fgs_action_disconnect),
             disconnectPi,
         )
 
@@ -176,7 +181,6 @@ class SshSessionService : LifecycleService() {
 
     companion object {
         const val CHANNEL_ID = "ssh_sessions"
-        const val CHANNEL_NAME = "Sesiones SSH activas"
         const val NOTIF_ID = 1001
         const val ACTION_DISCONNECT_ALL = "io.shelldroid.DISCONNECT_ALL"
 

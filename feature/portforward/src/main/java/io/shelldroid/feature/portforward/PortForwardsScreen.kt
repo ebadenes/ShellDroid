@@ -19,6 +19,7 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Stop
 import androidx.compose.material3.Card
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -27,12 +28,15 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -62,6 +66,22 @@ fun PortForwardsScreen(
     val grouped by viewModel.grouped.collectAsState()
     val statuses by viewModel.forwardStatuses.collectAsState()
     var pfToDelete by remember { mutableStateOf<PortForward?>(null) }
+    val snackbarHostState = remember { SnackbarHostState() }
+
+    LaunchedEffect(Unit) {
+        viewModel.events.collect { ev ->
+            when (ev) {
+                is PortForwardsListViewModel.UiEvent.Info ->
+                    snackbarHostState.showSnackbar(ev.message)
+                is PortForwardsListViewModel.UiEvent.Error ->
+                    snackbarHostState.showSnackbar(ev.message)
+                is PortForwardsListViewModel.UiEvent.NeedsPassword ->
+                    snackbarHostState.showSnackbar(
+                        "Conecta el host desde la lista primero",
+                    )
+            }
+        }
+    }
 
     if (pfToDelete != null) {
         AlertDialog(
@@ -98,6 +118,7 @@ fun PortForwardsScreen(
                 Icon(Icons.Default.Add, contentDescription = "Add port forward")
             }
         },
+        snackbarHost = { SnackbarHost(snackbarHostState) },
     ) { padding ->
         Box(Modifier.fillMaxSize().padding(padding)) {
             if (grouped.isEmpty()) {
@@ -193,18 +214,31 @@ private fun PortForwardCard(
                     style = MaterialTheme.typography.bodySmall,
                 )
             }
-            // Start/Stop toggle (only for LOCAL type)
-            if (pf.type == PortForwardType.LOCAL) {
-                IconButton(onClick = onToggle) {
-                    Icon(
-                        imageVector = if (forwardState == ForwardState.ACTIVE)
-                            Icons.Default.Stop else Icons.Default.PlayArrow,
-                        contentDescription = if (forwardState == ForwardState.ACTIVE)
-                            "Stop" else "Start",
-                        tint = if (forwardState == ForwardState.ACTIVE)
-                            MaterialTheme.colorScheme.error
-                        else MaterialTheme.colorScheme.primary,
-                    )
+            // Start/Stop toggle for LOCAL and DYNAMIC. REMOTE is not yet
+            // implemented — see internal/docs/post_v1_todo.md.
+            when (pf.type) {
+                PortForwardType.LOCAL, PortForwardType.DYNAMIC -> {
+                    IconButton(onClick = onToggle) {
+                        Icon(
+                            imageVector = if (forwardState == ForwardState.ACTIVE)
+                                Icons.Default.Stop else Icons.Default.PlayArrow,
+                            contentDescription = if (forwardState == ForwardState.ACTIVE)
+                                "Stop" else "Start",
+                            tint = if (forwardState == ForwardState.ACTIVE)
+                                MaterialTheme.colorScheme.error
+                            else MaterialTheme.colorScheme.primary,
+                        )
+                    }
+                }
+                PortForwardType.REMOTE -> {
+                    // Placeholder — disabled icon with a tooltip-ish label.
+                    IconButton(onClick = {}, enabled = false) {
+                        Icon(
+                            imageVector = Icons.Default.Schedule,
+                            contentDescription = "Coming soon",
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
                 }
             }
             IconButton(onClick = onClone) {

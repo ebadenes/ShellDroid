@@ -15,8 +15,8 @@ android {
         applicationId = "io.shelldroid"
         minSdk = libs.versions.minSdk.get().toInt()
         targetSdk = libs.versions.targetSdk.get().toInt()
-        versionCode = 2
-        versionName = "0.2.0-alpha"
+        versionCode = 4
+        versionName = "0.4.0-alpha"
         ndk {
             // Align with :core:ssh-native. We only ship 64-bit.
             abiFilters += listOf("arm64-v8a", "x86_64")
@@ -66,6 +66,7 @@ dependencies {
     implementation(libs.bundles.compose)
     implementation(libs.androidx.compose.material.icons.extended)
     implementation(libs.androidx.activity.compose)
+    implementation(libs.androidx.core.splashscreen)
     implementation("androidx.appcompat:appcompat:1.7.1")
     implementation(libs.androidx.navigation.compose)
     implementation(libs.androidx.lifecycle.runtime.compose)
