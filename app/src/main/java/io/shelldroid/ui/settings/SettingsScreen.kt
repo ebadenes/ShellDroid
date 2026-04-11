@@ -1,15 +1,22 @@
 package io.shelldroid.ui.settings
 
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Code
+import androidx.compose.material.icons.filled.Public
+import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
@@ -17,6 +24,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Slider
@@ -32,6 +40,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.res.stringResource
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -63,6 +72,7 @@ fun SettingsScreen(
     viewModel: SettingsViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state
+    val context = LocalContext.current
 
     var showSkinPicker by remember { mutableStateOf(false) }
     var showThemeModePicker by remember { mutableStateOf(false) }
@@ -340,8 +350,16 @@ fun SettingsScreen(
             SectionHeader(stringResource(UiR.string.settings_about))
 
             ListItem(
-                headlineContent = { Text(stringResource(UiR.string.app_name)) },
-                supportingContent = { Text(stringResource(UiR.string.version_format, state.appVersion)) },
+                headlineContent = { Text(stringResource(UiR.string.about_rate)) },
+                supportingContent = { Text(stringResource(UiR.string.about_rate_desc)) },
+                leadingContent = {
+                    Icon(
+                        imageVector = Icons.Filled.Star,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                    )
+                },
+                modifier = Modifier.clickable { openPlayStore(context) },
             )
 
             ListItem(
@@ -349,7 +367,78 @@ fun SettingsScreen(
                 supportingContent = { Text(stringResource(UiR.string.settings_licenses_desc)) },
                 modifier = Modifier.clickable { onOpenLicenses() },
             )
+
+            ListItem(
+                headlineContent = { Text(stringResource(UiR.string.app_name)) },
+                supportingContent = { Text(stringResource(UiR.string.version_format, state.appVersion)) },
+            )
+
+            // Web + GitHub split 50/50
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                OutlinedButton(
+                    onClick = { openUrl(context, WEBSITE_URL) },
+                    modifier = Modifier.weight(1f),
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.Public,
+                        contentDescription = null,
+                        modifier = Modifier.size(18.dp),
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(stringResource(UiR.string.about_website))
+                }
+                OutlinedButton(
+                    onClick = { openUrl(context, GITHUB_URL) },
+                    modifier = Modifier.weight(1f),
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.Code,
+                        contentDescription = null,
+                        modifier = Modifier.size(18.dp),
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(stringResource(UiR.string.about_github))
+                }
+            }
         }
+    }
+}
+
+private const val WEBSITE_URL = "https://shelldroid.ebadenes.com/"
+private const val GITHUB_URL = "https://github.com/ebadenes/ShellDroid"
+private const val PLAY_STORE_PKG = "io.shelldroid"
+
+/**
+ * Opens the Play Store listing. Prefers the `market://` intent so the
+ * Play Store app opens directly if installed; otherwise falls back to
+ * the `https://play.google.com/...` web URL.
+ */
+private fun openPlayStore(context: android.content.Context) {
+    val marketIntent = android.content.Intent(
+        android.content.Intent.ACTION_VIEW,
+        android.net.Uri.parse("market://details?id=$PLAY_STORE_PKG"),
+    ).addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
+    try {
+        context.startActivity(marketIntent)
+    } catch (_: android.content.ActivityNotFoundException) {
+        openUrl(context, "https://play.google.com/store/apps/details?id=$PLAY_STORE_PKG")
+    }
+}
+
+private fun openUrl(context: android.content.Context, url: String) {
+    val intent = android.content.Intent(
+        android.content.Intent.ACTION_VIEW,
+        android.net.Uri.parse(url),
+    ).addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
+    try {
+        context.startActivity(intent)
+    } catch (_: android.content.ActivityNotFoundException) {
+        // No browser / Play Store installed — silently ignore.
     }
 }
 

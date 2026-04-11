@@ -21,6 +21,10 @@
     <string name="fgs_action_open">Abrir terminal</string>
     <string name="fgs_action_disconnect">Desconectar</string>
     <string name="port_forward_remote_soon">REMOTE (próximamente)</string>
+    <string name="about_rate">Puntúanos en Google Play</string>
+    <string name="about_rate_desc">Si te gusta ShellDroid, déjanos una reseña</string>
+    <string name="about_website">Web</string>
+    <string name="about_github">GitHub</string>
     <string name="use_password">Contraseña</string>
     <string name="use_identity">Identidad</string>
     <string name="select_identity">Seleccionar identidad</string>
