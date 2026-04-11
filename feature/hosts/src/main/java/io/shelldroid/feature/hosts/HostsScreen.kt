@@ -1,5 +1,6 @@
 package io.shelldroid.feature.hosts
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -27,23 +28,25 @@ import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.SwapHoriz
 import androidx.compose.material3.Card
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Checkbox
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -80,9 +83,12 @@ fun HostsScreen(
     var showQuickConnect by remember { mutableStateOf(false) }
     var overflowExpanded by remember { mutableStateOf(false) }
 
-    // Quick Connect dialog — user@host:port + optional password
+    // Quick Connect dialog — user@host:port + optional password.
+    // The host is always saved to DB (so the terminal can resolve it for
+    // title / auto-command / identity). If "Save connection" is unchecked
+    // it is marked ephemeral and TerminalViewModel deletes it on disconnect.
     if (showQuickConnect) {
-        var qcInput by remember { mutableStateOf("root@") }
+        var qcInput by remember { mutableStateOf("") }
         var qcPassword by remember { mutableStateOf("") }
         var qcSave by remember { mutableStateOf(false) }
 
@@ -107,12 +113,17 @@ fun HostsScreen(
                         singleLine = true,
                         visualTransformation = PasswordVisualTransformation(),
                     )
-                    Row(verticalAlignment = Alignment.CenterVertically) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { qcSave = !qcSave },
+                    ) {
                         Checkbox(
                             checked = qcSave,
                             onCheckedChange = { qcSave = it },
                         )
-                        Text(stringResource(UiR.string.save), style = MaterialTheme.typography.bodySmall)
+                        Text(stringResource(UiR.string.save_connection))
                     }
                 }
             },
@@ -123,7 +134,8 @@ fun HostsScreen(
                         if (parsed != null) {
                             viewModel.quickConnect(
                                 parsed.first, parsed.second, parsed.third,
-                                qcPassword, qcSave,
+                                qcPassword,
+                                saveToDb = qcSave,
                             )
                             showQuickConnect = false
                         }
@@ -158,29 +170,80 @@ fun HostsScreen(
         )
     }
 
-    // Password prompt for hosts without identity
+    // Credentials prompt for hosts without an identity yet. Lets the user
+    // either pick an existing identity (SSH key) or type a one-off password.
     val needsPasswordState = connectState as? HostsListViewModel.ConnectState.NeedsPassword
     if (needsPasswordState != null) {
+        val identities by viewModel.identities.collectAsState()
+        var usePassword by remember { mutableStateOf(true) }
         var pwInput by remember { mutableStateOf("") }
+        var selectedIdentityId by remember { mutableStateOf<String?>(null) }
+
         AlertDialog(
             onDismissRequest = { viewModel.resetConnectState() },
-            title = { Text(stringResource(UiR.string.password)) },
+            title = { Text(stringResource(UiR.string.connect)) },
             text = {
-                OutlinedTextField(
-                    value = pwInput,
-                    onValueChange = { pwInput = it },
-                    label = { Text(stringResource(UiR.string.password)) },
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true,
-                    visualTransformation = PasswordVisualTransformation(),
-                )
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    if (identities.isNotEmpty()) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            FilterChip(
+                                selected = usePassword,
+                                onClick = { usePassword = true },
+                                label = { Text(stringResource(UiR.string.use_password)) },
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            FilterChip(
+                                selected = !usePassword,
+                                onClick = { usePassword = false },
+                                label = { Text(stringResource(UiR.string.use_identity)) },
+                            )
+                        }
+                    }
+                    if (usePassword || identities.isEmpty()) {
+                        OutlinedTextField(
+                            value = pwInput,
+                            onValueChange = { pwInput = it },
+                            label = { Text(stringResource(UiR.string.password)) },
+                            modifier = Modifier.fillMaxWidth(),
+                            singleLine = true,
+                            visualTransformation = PasswordVisualTransformation(),
+                        )
+                    } else {
+                        Text(
+                            text = stringResource(UiR.string.select_identity),
+                            style = MaterialTheme.typography.labelMedium,
+                        )
+                        identities.forEach { identity ->
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable { selectedIdentityId = identity.id }
+                                    .padding(vertical = 4.dp),
+                            ) {
+                                RadioButton(
+                                    selected = selectedIdentityId == identity.id,
+                                    onClick = { selectedIdentityId = identity.id },
+                                )
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text(identity.name)
+                            }
+                        }
+                    }
+                }
             },
             confirmButton = {
                 TextButton(
                     onClick = {
-                        viewModel.connectWithPassword(needsPasswordState.hostId, pwInput)
+                        if (usePassword || identities.isEmpty()) {
+                            viewModel.connectWithPassword(needsPasswordState.hostId, pwInput)
+                        } else {
+                            val id = selectedIdentityId ?: return@TextButton
+                            viewModel.connectWithIdentity(needsPasswordState.hostId, id)
+                        }
                     },
-                    enabled = pwInput.isNotEmpty(),
+                    enabled = if (usePassword || identities.isEmpty()) pwInput.isNotEmpty()
+                              else selectedIdentityId != null,
                 ) { Text(stringResource(UiR.string.connect)) }
             },
             dismissButton = {
@@ -192,15 +255,14 @@ fun HostsScreen(
     }
 
     LaunchedEffect(connectState) {
-        when (val s = connectState) {
-            is HostsListViewModel.ConnectState.Error -> {
-                snackbarHostState.showSnackbar(s.message)
-                viewModel.resetConnectState()
-            }
-            is HostsListViewModel.ConnectState.Connected -> {
-                viewModel.resetConnectState()
-            }
-            else -> Unit
+        // Note: navigation to the terminal on Connected is handled by
+        // ShellDroidNavHost (which hoists this VM and observes the same
+        // state). Resetting here would race with that effect — so we
+        // only handle Error locally and let NavHost reset on Connected.
+        val s = connectState
+        if (s is HostsListViewModel.ConnectState.Error) {
+            snackbarHostState.showSnackbar(s.message)
+            viewModel.resetConnectState()
         }
     }
 

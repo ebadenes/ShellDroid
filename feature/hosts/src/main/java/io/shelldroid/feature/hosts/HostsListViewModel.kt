@@ -35,6 +35,10 @@ class HostsListViewModel @Inject constructor(
     val hosts: StateFlow<List<Host>> = repo.observeAll()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
+    /** All identities for the current user — feeds the credentials picker. */
+    val identities: StateFlow<List<Identity>> = identityRepo.observeAll()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+
     sealed class ConnectState {
         data object Idle : ConnectState()
         data class Connecting(val hostId: String) : ConnectState()
@@ -51,6 +55,22 @@ class HostsListViewModel @Inject constructor(
     fun connectWithPassword(hostId: String, password: String) {
         _pendingPassword = password.toCharArray()
         connect(hostId)
+    }
+
+    /**
+     * Persist the chosen [identityId] on the host then retry [connect].
+     * Used by the credentials picker dialog when the user chooses an
+     * existing identity instead of typing a password.
+     */
+    fun connectWithIdentity(hostId: String, identityId: String) {
+        viewModelScope.launch {
+            val host = repo.findById(hostId) ?: run {
+                _connectState.value = ConnectState.Error(hostId, "Host no encontrado")
+                return@launch
+            }
+            repo.upsert(host.copy(identityId = identityId))
+            connect(hostId)
+        }
     }
 
     fun connect(hostId: String) {
@@ -161,51 +181,32 @@ class HostsListViewModel @Inject constructor(
     ) {
         val hostId = UUID.randomUUID().toString()
         viewModelScope.launch {
-            _connectState.value = ConnectState.Connecting(hostId)
-
-            // Optionally save to DB first
-            if (saveToDb) {
-                val host = Host(
-                    id = hostId,
-                    userId = repo.currentUserId(),
-                    name = "$username@$hostname",
-                    hostname = hostname,
-                    port = port,
-                    username = username,
-                    createdAt = System.currentTimeMillis(),
-                )
-                repo.upsert(host)
-            }
-
-            val pwChars = password.toCharArray()
-            val auth = if (pwChars.isNotEmpty()) {
-                try {
-                    AuthMethod.Password(pwChars.copyOf())
-                } finally {
-                    pwChars.fill('\u0000')
-                }
-            } else {
-                AuthMethod.Password(CharArray(0))
-            }
-            val config = SshConfig(
-                hostId = hostId,
+            // Always persist the host so the terminal can resolve it via
+            // hostDao.findById() (title, autoCommand, identity hooks) and
+            // so the regular connect()/connectWithPassword() flows work
+            // identically. If the user did NOT tick "Save connection",
+            // mark it ephemeral — TerminalViewModel.disconnectAndRelease()
+            // will delete it automatically once the bridge tears down.
+            val host = Host(
+                id = hostId,
+                userId = repo.currentUserId(),
+                name = "$username@$hostname",
                 hostname = hostname,
                 port = port,
                 username = username,
-                auth = auth,
+                createdAt = System.currentTimeMillis(),
+                ephemeral = !saveToDb,
             )
-            val result = sessionManager.connect(config)
-            _connectState.value = if (result.isSuccess) {
-                ConnectState.Connected(hostId)
+            repo.upsert(host)
+
+            // Delegate to the regular flow. With a password, attempt the
+            // connection directly; without one, connect() will hit the
+            // NeedsPassword branch and surface the credentials dialog —
+            // the exact same UX as a saved host with no identity.
+            if (password.isNotEmpty()) {
+                connectWithPassword(hostId, password)
             } else {
-                val err = result.exceptionOrNull()
-                val msg = when (err) {
-                    is SshConnectException.HostKeyRejected -> "Host key rechazado"
-                    is SshConnectException.AuthFailed -> "Autenticación falló"
-                    is SshConnectException.NetworkError -> "Error de red: ${err.message}"
-                    else -> err?.message ?: "Error desconocido"
-                }
-                ConnectState.Error(hostId, msg)
+                connect(hostId)
             }
         }
     }

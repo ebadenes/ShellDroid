@@ -23,44 +23,32 @@ class LockManagerTest {
         val vault = CredentialVault(ctx)
         val file = File(ctx.cacheDir, "lock-test-${UUID.randomUUID()}.preferences_pb")
         val dataStore = PreferenceDataStoreFactory.create(produceFile = { file })
-        lockManager = LockManager(vault, dataStore)
+        lockManager = LockManager(vault, dataStore, ctx)
     }
 
     @Test
-    fun setPin_then_verify_correct() = runBlocking {
-        lockManager.setPin("1234".toCharArray())
-        assertThat(lockManager.hasPin()).isTrue()
-        assertThat(lockManager.verifyPin("1234".toCharArray())).isTrue()
+    fun lock_disabled_by_default() = runBlocking {
+        assertThat(lockManager.isLockEnabled()).isFalse()
+        assertThat(lockManager.isLocked()).isFalse()
     }
 
     @Test
-    fun verify_wrong_pin_fails() = runBlocking {
-        lockManager.setPin("1234".toCharArray())
-        assertThat(lockManager.verifyPin("0000".toCharArray())).isFalse()
+    fun setLockEnabled_true_then_false() = runBlocking {
+        lockManager.setLockEnabled(true)
+        assertThat(lockManager.isLockEnabled()).isTrue()
+        lockManager.setLockEnabled(false)
+        assertThat(lockManager.isLockEnabled()).isFalse()
     }
 
     @Test
-    fun verify_without_pin_returns_false() = runBlocking {
-        assertThat(lockManager.hasPin()).isFalse()
-        assertThat(lockManager.verifyPin("1234".toCharArray())).isFalse()
-    }
-
-    @Test
-    fun clearPin_removes_state() = runBlocking {
-        lockManager.setPin("1234".toCharArray())
-        lockManager.clearPin()
-        assertThat(lockManager.hasPin()).isFalse()
-    }
-
-    @Test
-    fun isLocked_true_when_no_unlock_yet() = runBlocking {
-        lockManager.setPin("1234".toCharArray())
+    fun isLocked_true_when_enabled_and_no_unlock_yet() = runBlocking {
+        lockManager.setLockEnabled(true)
         assertThat(lockManager.isLocked()).isTrue()
     }
 
     @Test
     fun isLocked_false_after_markUnlocked_within_window() = runBlocking {
-        lockManager.setPin("1234".toCharArray())
+        lockManager.setLockEnabled(true)
         lockManager.setAutoLockMode(AutoLockMode.FIVE_MIN)
         lockManager.markUnlocked()
         assertThat(lockManager.isLocked()).isFalse()

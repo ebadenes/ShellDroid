@@ -10,7 +10,7 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface HostDao {
-    @Query("SELECT * FROM hosts WHERE userId = :userId ORDER BY name")
+    @Query("SELECT * FROM hosts WHERE userId = :userId AND ephemeral = 0 ORDER BY name")
     fun observeAll(userId: String): Flow<List<Host>>
 
     @Query("SELECT * FROM hosts WHERE id = :id")

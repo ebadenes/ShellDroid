@@ -7,6 +7,10 @@
     <string name="edit">Edit</string>
     <string name="delete">Delete</string>
     <string name="save">Save</string>
+    <string name="save_connection">Save connection</string>
+    <string name="use_password">Password</string>
+    <string name="use_identity">Identity</string>
+    <string name="select_identity">Select identity</string>
     <string name="cancel">Cancel</string>
     <string name="close">Close</string>
     <string name="back">Back</string>
@@ -59,10 +63,16 @@
     <string name="settings_keep_screen_on_desc">Prevents the screen from turning off during a session</string>
 
     <string name="settings_security">Security</string>
-    <string name="settings_pin_lock">PIN lock</string>
-    <string name="settings_pin_lock_desc">Require PIN or biometrics when opening the app</string>
+    <string name="settings_pin_lock">App lock</string>
+    <string name="settings_pin_lock_desc">Uses the system lock (fingerprint, PIN or pattern) when opening the app</string>
     <string name="settings_autolock">Auto-lock timeout</string>
     <string name="settings_autolock_5min">5 minutes</string>
+    <string name="settings_autolock_system">Match system</string>
+    <string name="settings_autolock_system_desc">Lock when Android turns the screen off</string>
+    <string name="settings_autolock_immediate">Immediate</string>
+    <string name="settings_autolock_1min">1 minute</string>
+    <string name="settings_autolock_15min">15 minutes</string>
+    <string name="settings_autolock_never">Never</string>
     <string name="settings_clear_known_hosts">Clear known hosts</string>
     <string name="settings_clear_known_hosts_desc">Remove all saved server keys</string>
     <string name="known_hosts">Known Hosts</string>

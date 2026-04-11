@@ -7,6 +7,10 @@
     <string name="edit">Editar</string>
     <string name="delete">Eliminar</string>
     <string name="save">Guardar</string>
+    <string name="save_connection">Guardar conexión</string>
+    <string name="use_password">Contraseña</string>
+    <string name="use_identity">Identidad</string>
+    <string name="select_identity">Seleccionar identidad</string>
     <string name="cancel">Cancelar</string>
     <string name="close">Cerrar</string>
     <string name="back">Atrás</string>
@@ -59,10 +63,16 @@
     <string name="settings_keep_screen_on_desc">Evita que la pantalla se apague durante una sesión</string>
 
     <string name="settings_security">Seguridad</string>
-    <string name="settings_pin_lock">Bloqueo con PIN</string>
-    <string name="settings_pin_lock_desc">Requiere PIN o biometría al abrir la app</string>
+    <string name="settings_pin_lock">Bloqueo de la app</string>
+    <string name="settings_pin_lock_desc">Usa el bloqueo del sistema (huella, PIN o patrón) al abrir la app</string>
     <string name="settings_autolock">Tiempo de auto-bloqueo</string>
     <string name="settings_autolock_5min">5 minutos</string>
+    <string name="settings_autolock_system">Igual que el sistema</string>
+    <string name="settings_autolock_system_desc">Bloquea cuando Android apaga la pantalla</string>
+    <string name="settings_autolock_immediate">Inmediato</string>
+    <string name="settings_autolock_1min">1 minuto</string>
+    <string name="settings_autolock_15min">15 minutos</string>
+    <string name="settings_autolock_never">Nunca</string>
     <string name="settings_clear_known_hosts">Borrar known hosts</string>
     <string name="settings_clear_known_hosts_desc">Elimina todas las claves de servidor guardadas</string>
     <string name="known_hosts">Known Hosts</string>

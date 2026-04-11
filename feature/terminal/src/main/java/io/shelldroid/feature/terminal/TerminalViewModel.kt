@@ -130,7 +130,10 @@ class TerminalViewModel @Inject constructor(
     /**
      * Hard-disconnect: release the bridge from the registry AND
      * disconnect the underlying SSH session from [SshSessionManager].
-     * Called from the back dialog's "Desconectar" option.
+     * Called from the back dialog's "Desconectar" option. If the host
+     * was created via Quick Connect without "Save connection" checked
+     * (`ephemeral = true`), it is also deleted from the database so it
+     * does not pollute the hosts list.
      */
     fun disconnectAndRelease() {
         val host = currentHostId ?: return
@@ -138,6 +141,12 @@ class TerminalViewModel @Inject constructor(
         bridgeRegistry.release(host, disconnectSession = true)
         _bridge.value = null
         currentHostId = null
+        viewModelScope.launch {
+            val record = hostDao.findById(host)
+            if (record != null && record.ephemeral) {
+                hostDao.delete(record)
+            }
+        }
     }
 
     override fun onCleared() {

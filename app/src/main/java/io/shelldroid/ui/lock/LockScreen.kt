@@ -7,41 +7,31 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.layout.size
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material3.Button
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import io.shelldroid.core.ui.R as UiR
 
 /**
- * Full-screen overlay that blocks app access until a valid PIN is entered
- * or biometric authentication succeeds.
- *
- * @param onPinSubmit Called with the entered PIN. Returns true if verification
- *   succeeded, false otherwise.
- * @param onBiometricClick Called when the user taps "Use fingerprint".
- * @param biometricAvailable Whether biometric auth is available on this device.
+ * Full-screen overlay shown while the app is locked. Authentication is
+ * delegated entirely to the system credential via [BiometricPrompt] —
+ * there is no in-app PIN field. The hosting Activity auto-triggers the
+ * prompt on appearance; this screen exists for the case where the user
+ * cancels or fails the prompt and needs a way to retry it.
  */
 @Composable
 fun LockScreen(
-    onPinSubmit: (String) -> Unit,
-    onBiometricClick: () -> Unit,
-    biometricAvailable: Boolean,
-    errorMessage: String? = null,
+    onUnlockClick: () -> Unit,
 ) {
     Surface(
         modifier = Modifier.fillMaxSize(),
@@ -54,52 +44,35 @@ fun LockScreen(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center,
         ) {
-            Text(
-                text = stringResource(UiR.string.enter_pin),
-                style = MaterialTheme.typography.headlineSmall,
+            Icon(
+                imageVector = Icons.Default.Lock,
+                contentDescription = null,
+                modifier = Modifier.size(72.dp),
+                tint = MaterialTheme.colorScheme.primary,
             )
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            var pin by remember { mutableStateOf("") }
-
-            OutlinedTextField(
-                value = pin,
-                onValueChange = { if (it.length <= 6 && it.all(Char::isDigit)) pin = it },
-                label = { Text("PIN") },
-                singleLine = true,
-                visualTransformation = PasswordVisualTransformation(),
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.NumberPassword),
-                modifier = Modifier.fillMaxWidth(),
+            Text(
+                text = stringResource(UiR.string.app_name),
+                style = MaterialTheme.typography.headlineMedium,
             )
 
-            if (errorMessage != null) {
-                Spacer(modifier = Modifier.height(8.dp))
-                Text(
-                    text = errorMessage,
-                    color = MaterialTheme.colorScheme.error,
-                    style = MaterialTheme.typography.bodySmall,
-                )
-            }
+            Spacer(modifier = Modifier.height(8.dp))
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Text(
+                text = stringResource(UiR.string.settings_pin_lock_desc),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+
+            Spacer(modifier = Modifier.height(32.dp))
 
             Button(
-                onClick = { onPinSubmit(pin) },
-                enabled = pin.length >= 4,
+                onClick = onUnlockClick,
                 modifier = Modifier.fillMaxWidth(),
             ) {
                 Text(stringResource(UiR.string.unlock))
-            }
-
-            if (biometricAvailable) {
-                Spacer(modifier = Modifier.height(12.dp))
-                OutlinedButton(
-                    onClick = onBiometricClick,
-                    modifier = Modifier.fillMaxWidth(),
-                ) {
-                    Text(stringResource(UiR.string.use_biometric))
-                }
             }
         }
     }

@@ -39,7 +39,6 @@ class MainActivity : AppCompatActivity() {
     @Inject lateinit var lockManager: LockManager
 
     private var isLocked by mutableStateOf(false)
-    private var lockError by mutableStateOf<String?>(null)
 
     private val notificationPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission(),
@@ -62,10 +61,7 @@ class MainActivity : AppCompatActivity() {
                         if (isLocked) {
                             val biometricGate = BiometricGate(this@MainActivity)
                             LockScreen(
-                                onPinSubmit = { pin -> verifyPin(pin) },
-                                onBiometricClick = { triggerBiometric(biometricGate) },
-                                biometricAvailable = biometricGate.isAvailable(),
-                                errorMessage = lockError,
+                                onUnlockClick = { triggerBiometric(biometricGate) },
                             )
                         }
                     }
@@ -89,26 +85,12 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun verifyPin(pin: String) {
-        lifecycleScope.launch {
-            val valid = lockManager.verifyPin(pin.toCharArray())
-            if (valid) {
-                lockManager.markUnlocked()
-                isLocked = false
-                lockError = null
-            } else {
-                lockError = getString(io.shelldroid.core.ui.R.string.wrong_pin)
-            }
-        }
-    }
-
     private fun triggerBiometric(gate: BiometricGate) {
         gate.authenticate(
             onSuccess = {
                 lifecycleScope.launch {
                     lockManager.markUnlocked()
                     isLocked = false
-                    lockError = null
                 }
             },
             onError = { _, _ -> },

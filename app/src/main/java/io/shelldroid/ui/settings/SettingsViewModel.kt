@@ -9,6 +9,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import io.shelldroid.core.db.AppPreferences
 import io.shelldroid.core.db.dao.KnownHostDao
+import io.shelldroid.core.security.AutoLockMode
 import io.shelldroid.core.security.LockManager
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.core.os.LocaleListCompat
@@ -35,7 +36,7 @@ data class SettingsState(
     val language: AppLanguage = AppLanguage.SYSTEM,
     val keepScreenOn: Boolean = false,
     val pinLockEnabled: Boolean = false,
-    val autoLockLabel: String = "5 minutos",
+    val autoLockMode: AutoLockMode = AutoLockMode.SYSTEM_SCREEN_OFF,
     val appVersion: String = "0.1.0-alpha",
 )
 
@@ -61,8 +62,9 @@ class SettingsViewModel @Inject constructor(
     init {
         viewModelScope.launch {
             _state.value = _state.value.copy(
-                pinLockEnabled = lockManager.hasPin(),
+                pinLockEnabled = lockManager.isLockEnabled(),
                 keepScreenOn = appPreferences.keepScreenOnFlow.first(),
+                autoLockMode = lockManager.getAutoLockMode(),
             )
         }
     }
@@ -112,30 +114,21 @@ class SettingsViewModel @Inject constructor(
     }
 
     /**
-     * When disabling PIN lock, clear immediately. When enabling, the UI must
-     * first collect a PIN via [setNewPin] — this method only updates the state
-     * optimistically when enabling (the actual PIN is set by [setNewPin]).
+     * Toggle the system-credential lock. Authentication itself is delegated
+     * to BiometricPrompt with DEVICE_CREDENTIAL — there is no in-app PIN to
+     * collect, so enabling is a single boolean flip.
      */
     fun setPinLock(enabled: Boolean) {
-        if (!enabled) {
-            viewModelScope.launch {
-                lockManager.clearPin()
-                _state.value = _state.value.copy(pinLockEnabled = false)
-            }
+        _state.value = _state.value.copy(pinLockEnabled = enabled)
+        viewModelScope.launch {
+            lockManager.setLockEnabled(enabled)
+            if (enabled) lockManager.markUnlocked()
         }
-        // When enabling, the SettingsScreen must show SetPinDialog; the actual
-        // enabling happens in setNewPin().
     }
 
-    /**
-     * Called by the Set PIN dialog after the user confirms matching PINs.
-     */
-    fun setNewPin(pin: String) {
-        viewModelScope.launch {
-            lockManager.setPin(pin.toCharArray())
-            lockManager.markUnlocked()
-            _state.value = _state.value.copy(pinLockEnabled = true)
-        }
+    fun setAutoLockMode(mode: AutoLockMode) {
+        _state.value = _state.value.copy(autoLockMode = mode)
+        viewModelScope.launch { lockManager.setAutoLockMode(mode) }
     }
 
     fun clearKnownHosts() {

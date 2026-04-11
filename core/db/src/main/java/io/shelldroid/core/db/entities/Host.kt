@@ -35,4 +35,12 @@ data class Host(
     @ColumnInfo(defaultValue = "") val autoCommand: String = "",
     val createdAt: Long,
     val lastConnectedAt: Long? = null,
+    /**
+     * Quick Connect hosts are persisted with `ephemeral = true` so the
+     * terminal can resolve them via [HostDao.findById] (title, identity,
+     * etc.). When the user disconnects from the bridge, ephemeral hosts
+     * are deleted automatically. Set `false` if the user explicitly
+     * checks "Save connection" in the Quick Connect dialog.
+     */
+    @ColumnInfo(defaultValue = "0") val ephemeral: Boolean = false,
 )
