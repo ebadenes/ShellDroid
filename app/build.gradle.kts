@@ -11,8 +11,17 @@ android {
     namespace = "io.shelldroid"
     compileSdk = libs.versions.compileSdk.get().toInt()
 
+    signingConfigs {
+        create("release") {
+            storeFile = file(System.getenv("SHELLDROID_KEYSTORE") ?: "shelldroid-upload.jks")
+            storePassword = System.getenv("SHELLDROID_KEYSTORE_PASS") ?: ""
+            keyAlias = "upload"
+            keyPassword = System.getenv("SHELLDROID_KEY_PASS") ?: ""
+        }
+    }
+
     defaultConfig {
-        applicationId = "io.shelldroid"
+        applicationId = "com.ebadenes.shelldroid"
         minSdk = libs.versions.minSdk.get().toInt()
         targetSdk = libs.versions.targetSdk.get().toInt()
         versionCode = 4
@@ -21,6 +30,17 @@ android {
             // Align with :core:ssh-native. We only ship 64-bit.
             abiFilters += listOf("arm64-v8a", "x86_64")
         }
+    }
+
+    buildTypes {
+        getByName("release") {
+            isMinifyEnabled = false
+            signingConfig = signingConfigs.getByName("release")
+        }
+    }
+
+    lint {
+        disable += "Instantiatable"
     }
 
     buildFeatures {

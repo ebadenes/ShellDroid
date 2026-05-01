@@ -5,68 +5,100 @@
 </p>
 
 <p align="center">
-  <a href="https://shelldroid.ebadenes.com/">Web</a> ·
-  <a href="#build">Build</a> ·
-  <a href="#licencia">Licencia</a>
+  <strong>A professional SSH client for Android. No ads. No tracking. Open source.</strong>
 </p>
 
-**Cliente SSH profesional para Android.** Código abierto, sin anuncios, sin tracking.
+<p align="center">
+  <a href="https://shelldroid.ebadenes.com/">Website</a> ·
+  <a href="https://groups.google.com/g/shelldroid-testers">Join the beta</a> ·
+  <a href="#build">Build</a> ·
+  <a href="#license">License</a>
+</p>
 
-Construido con **libssh nativo** (JNI + mbedTLS), **Jetpack Compose** (Material 3) y el emulador de terminal **termlib** de ConnectBot. 12 módulos, más de 200 tests, diseñado para funcionar.
+---
+
+## Beta — testers welcome
+
+ShellDroid is in **closed beta** on Google Play. To get access:
+
+1. **[Join the testers group](https://groups.google.com/g/shelldroid-testers)** (one click)
+2. **[Download from Google Play](https://play.google.com/apps/testing/com.ebadenes.shelldroid)**
+
+---
+
+## Why
+
+JuiceSSH Pro disappeared. Years of muscle memory — the hacker keyboard, the two-row bar, quick connect, snippets — gone. The alternatives are either abandonware (ConnectBot, last meaningful commit 2019) or Termius at $10/month for features I use 20% of the time.
+
+So I built ShellDroid.
+
+Most Android SSH clients use JSch or sshlib — pure Java, aging crypto, slow key exchange. ShellDroid uses **native libssh via JNI**, compiled with mbedTLS and 16KB page alignment. The cryptographic layer is current, Ed25519 and ECDSA work correctly, and the key exchange is noticeably faster on the first connection.
+
+The terminal is built on **org.connectbot:termlib** as a real `@Composable` — not an AndroidView wrapped in Compose glue. Focus, IME resizing, and key handling are native to the composition tree. No hacks, no flickering.
+
+## Screenshots
+
+<p align="center">
+  <img src="screenshots/01_hosts_list.png" width="180" alt="Host list" />
+  <img src="screenshots/02_quick_connect.png" width="180" alt="Quick Connect" />
+  <img src="screenshots/04_terminal.png" width="180" alt="Terminal" />
+  <img src="screenshots/05_snippets.png" width="180" alt="Snippets" />
+  <img src="screenshots/08_lock_screen.png" width="180" alt="App lock" />
+</p>
 
 ## Features
 
-### Conexión
-- 🔐 **SSH nativo** — libssh 0.11.4 vía JNI, no wrappers Java. Auth por password y clave pública (RSA, Ed25519, ECDSA)
-- ⚡ **Quick Connect** — `user@host:port`, contraseña opcional, opción de guardar la conexión. Si no la guardas se borra al desconectar
-- 🟢 **Estado en vivo** — punto verde en la lista de hosts cuando la sesión SSH está activa; gris cuando no
-- 🔑 **TOFU** — Trust On First Use con known hosts manager individual (ver/borrar claves por host)
-- 💳 **Credentials picker** — elige entre contraseña puntual o una identidad guardada en el mismo modal al conectar
+### Connection
+- **Native SSH** — libssh 0.11.4 via JNI. Auth by password and public key (RSA, Ed25519, ECDSA)
+- **Quick Connect** — `user@host:port`, optional password, optional save. Ephemeral connections are deleted on disconnect
+- **Live host status** — green dot when the SSH session is active, grey when idle
+- **TOFU** — Trust On First Use with per-host known hosts manager (view/delete individual keys)
+- **Credentials picker** — choose between a one-time password or a saved identity in the same modal
 
 ### Terminal
-- 📱 **Compose-native** — termlib de ConnectBot, sin `AndroidView`. IME, selección, hyperlinks integrados
-- ⌨️ **Hacker keyboard** — 2 filas estilo JuiceSSH con ESC, flechas, CTRL/ALT sticky, F1-F12, haptic feedback
-- 📋 **Snippets** — comandos guardados ejecutables desde el terminal con un tap, o desde la lista de snippets eligiendo sesión destino
-- 🧬 **Auto-command** — comando que se ejecuta automáticamente al conectar al host
-- 💡 **Mantener pantalla** — flag `FLAG_KEEP_SCREEN_ON` opcional mientras haya terminal abierta
-- 🔊 **Volume zoom** — sube y baja el tamaño de fuente con las teclas de volumen (persistido)
-- ↩️ **Smart back gesture** — predictive back de Android 14+ con diálogo mantener/desconectar
+- **Compose-native** — termlib from ConnectBot, no `AndroidView`. IME, selection, and hyperlinks integrated
+- **Hacker keyboard** — 2-row bar (JuiceSSH style) with ESC, arrows, CTRL/ALT sticky, F1–F12, haptic feedback
+- **Snippets** — saved commands you can run on any active session with one tap
+- **Auto-command** — command that runs automatically after connecting to a host
+- **Keep screen on** — optional `FLAG_KEEP_SCREEN_ON` while a terminal is open
+- **Volume zoom** — change font size with volume keys (persisted)
+- **Smart back gesture** — Android 14+ predictive back with keep/disconnect dialog
 
 ### Port forwarding
-- 🔀 **LOCAL** — `ssh -L` sobre libssh `direct-tcpip`. `ServerSocket` → pipe bidireccional via canal SSH
-- 🧦 **DYNAMIC** — SOCKS5 proxy sobre SSH (`ssh -D`). Handshake RFC 1928 en Kotlin, el canal direct-tcpip se reutiliza
-- 🔌 **Auto-connect** — tocar Play en un forward conecta primero el SSH del host si no está vivo
-- 🔜 **REMOTE** — `ssh -R` marcado como "próximamente" en la UI, tracked en el backlog post-v1
+- **LOCAL** — `ssh -L` via libssh `direct-tcpip`. `ServerSocket` → bidirectional pipe over SSH channel
+- **DYNAMIC** — SOCKS5 proxy over SSH (`ssh -D`). RFC 1928 handshake in Kotlin, reuses direct-tcpip channel
+- **Auto-connect** — tapping Play on a forward connects the SSH host first if not already live
+- **REMOTE** — `ssh -R` coming soon
 
-### Seguridad
-- 🔒 **Credential vault** — Tink AES-256-GCM sobre DataStore. `CharArray` + zeroize, nunca en el JVM string pool
-- 🛡️ **App lock** — bloqueo delegado al sistema (BiometricPrompt + `DEVICE_CREDENTIAL`). Huella, PIN o patrón del dispositivo. Sin PIN propio de la app
-- ⏰ **Auto-lock timeout** configurable: "Igual que el sistema" (lee `Settings.System.SCREEN_OFF_TIMEOUT`), Inmediato, 1/5/15 min, Nunca
-- 🚫 **Sin backups inseguros** — `android:allowBackup=false`, data extraction rules restrictivas
+### Security
+- **Credential vault** — Tink AES-256-GCM over DataStore. `CharArray` + zeroize, never in the JVM string pool
+- **App lock** — delegates to the system (BiometricPrompt + `DEVICE_CREDENTIAL`). Fingerprint, system PIN, or pattern. No in-app PIN to forget
+- **Auto-lock timeout** — configurable: "Same as system" (reads `Settings.System.SCREEN_OFF_TIMEOUT`), Immediate, 1/5/15 min, Never
+- **No insecure backups** — `android:allowBackup=false`, restrictive data extraction rules
 
 ### UI / UX
-- 🎨 **Skins** — Abyss (default) y Solarized Dark con paleta ANSI de 16 colores. Cambio en vivo
-- 🌙 **Dark / Light** — sigue al sistema o forzado. Paleta Abyss completa
-- 🌐 **i18n** — español e inglés, configurable desde Settings
-- ✨ **Splash screen** — transición limpia desde arranque con el logo Abyss
-- 📌 **Foreground service** — sesiones sobreviven en background con notificación i18n, cronómetro y hostname. Acciones "Abrir terminal" / "Desconectar" desde la notificación
-- 📄 **Clonar** — duplica hosts, identidades, snippets o port forwards con un tap
+- **Skins** — Abyss (default) and Solarized Dark with 16-color ANSI palette. Live switching
+- **Dark / Light** — follows system or forced. Full Abyss palette
+- **i18n** — English and Spanish, configurable from Settings
+- **Splash screen** — clean boot transition with the Abyss logo
+- **Foreground service** — sessions survive in background with i18n notification, timer, and hostname. "Open terminal" / "Disconnect" actions from the notification
+- **Clone** — duplicate hosts, identities, snippets, or port forwards with one tap
 
 ## Stack
 
-| Capa | Tecnología |
-|------|-----------|
-| Lenguaje | Kotlin 2.3.20 |
+| Layer | Technology |
+|-------|-----------|
+| Language | Kotlin 2.3.20 |
 | UI | Jetpack Compose + Material 3 (BOM 2026.03.01) |
 | Terminal | [ConnectBot termlib](https://connectbot.org) 0.0.24 |
-| SSH | [libssh](https://www.libssh.org) 0.11.4 nativo (JNI) + mbedTLS 3.6.4 |
+| SSH | [libssh](https://www.libssh.org) 0.11.4 native (JNI) + mbedTLS 3.6.4 |
 | DI | Hilt 2.59.2 |
 | DB | Room 2.8.4 |
 | Crypto | Tink 1.15.0 |
 | Build | AGP 9.1.0, Gradle 9.4.1, KSP 2.3.6 |
 | Min SDK | 26 (Android 8.0+) |
 
-## Módulos
+## Modules
 
 ```
 :app                    → Activity, NavHost, Settings
@@ -80,31 +112,31 @@ Construido con **libssh nativo** (JNI + mbedTLS), **Jetpack Compose** (Material 
 :feature:terminal       → TerminalBridge, TerminalScreen, KeyBar, skins
 :feature:snippets       → CRUD snippets
 :feature:portforward    → CRUD port forwards
-:service:session        → Foreground service + notificación
+:service:session        → Foreground service + notification
 ```
 
 ## Build
 
-Todo el build vive en Docker (no se requiere SDK Android en el host):
+The entire build runs in Docker (no Android SDK required on the host):
 
 ```bash
-./vendor/setup.sh                        # primera vez: clona libssh, mbedtls
-./docker-gradle.sh :app:assembleDebug    # APK en app/build/outputs/apk/debug/
-./docker-gradle.sh test                  # 200+ tests JVM
+./vendor/setup.sh                        # first time: clones libssh, mbedtls
+./docker-gradle.sh :app:assembleDebug    # APK in app/build/outputs/apk/debug/
+./docker-gradle.sh test                  # 200+ JVM tests
 ```
 
-También disponible vía [Docker Compose](docker-compose.yml) un servidor OpenSSH local en `127.0.0.1:2222` para tests de integración.
+A local OpenSSH server is also available via [Docker Compose](docker-compose.yml) at `127.0.0.1:2222` for integration tests.
 
-## Versión actual
+## Current version
 
-**v0.4.1-alpha** — camino a v1.0 estable. Funcional y listo para uso real; pendientes para el 1.0: REMOTE port forwarding, groups/folders, panic button, release signing, firma y subida a Play Store.
+**v0.4.2-alpha** — on the road to v1.0 stable. Functional and ready for daily use. Remaining for 1.0: REMOTE port forwarding, groups/folders, panic button, Play Store public release.
 
-## Sobre el desarrollo
+## About the development
 
-¿Lo he hecho solo? No. He trabajado con Copilot, Gemini, Claude y lo que hiciera falta en cada momento. En 2026 lo importante no es si usas IA o no, es qué eres capaz de construir con ella. ShellDroid es un cliente SSH profesional con libssh nativo vía JNI, Jetpack Compose, 12 módulos y más de 200 tests. Yo puse la dirección, las decisiones y las horas de testing en un Pixel real. La IA puso velocidad.
+Did I build this alone? No. I worked with Copilot, Gemini, Claude, and whatever was needed at each stage. In 2026, what matters isn't whether you use AI — it's what you can build with it. ShellDroid is a professional SSH client with native libssh via JNI, Jetpack Compose, 12 modules, and 200+ tests. I brought direction, decisions, and hours of real-device testing. AI brought speed.
 
-## Licencia
+## License
 
-[GPLv3](LICENSE) — Software libre. Puedes usar, modificar y distribuir ShellDroid bajo los términos de la GNU General Public License v3.0.
+[GPLv3](LICENSE) — Free software. You can use, modify, and distribute ShellDroid under the terms of the GNU General Public License v3.0.
 
-Componentes de terceros: ver la pantalla de Licencias en la app (Settings → Acerca de → Licencias).
+Third-party components: see the Licenses screen in the app (Settings → About → Licenses).

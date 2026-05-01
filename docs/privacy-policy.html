@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ShellDroid - Política de Privacidad / Privacy Policy</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            max-width: 720px;
+            margin: 40px auto;
+            padding: 0 20px;
+            line-height: 1.7;
+            color: #2d2d2d;
+            background: #fafafa;
+        }
+        h1 { font-size: 1.6em; border-bottom: 2px solid #1a73e8; padding-bottom: 8px; }
+        h2 { font-size: 1.2em; margin-top: 2em; color: #1a73e8; }
+        h3 { font-size: 1.05em; margin-top: 1.5em; color: #555; }
+        p, li { margin: 0.6em 0; }
+        ul { padding-left: 1.4em; }
+        .updated { color: #666; font-size: 0.9em; }
+        .lang-switch { text-align: right; font-size: 0.9em; margin-bottom: 1em; }
+        .lang-switch a { color: #1a73e8; text-decoration: none; }
+        .section-en { display: none; }
+        table { border-collapse: collapse; width: 100%; margin: 1em 0; }
+        th, td { border: 1px solid #ddd; padding: 8px 12px; text-align: left; }
+        th { background: #f0f0f0; }
+        a { color: #1a73e8; }
+    </style>
+    <script>
+        function switchLang(lang) {
+            document.querySelectorAll('.section-es').forEach(el => el.style.display = lang === 'es' ? '' : 'none');
+            document.querySelectorAll('.section-en').forEach(el => el.style.display = lang === 'en' ? '' : 'none');
+        }
+    </script>
+</head>
+<body>
+
+<div class="lang-switch">
+    <a href="#" onclick="switchLang('es'); return false;">Español</a> |
+    <a href="#" onclick="switchLang('en'); return false;">English</a>
+</div>
+
+<!-- ==================== ESPAÑOL ==================== -->
+<div class="section-es">
+
+<h1>ShellDroid - Política de Privacidad</h1>
+<p class="updated">Última actualización: 13 de abril de 2026</p>
+
+<h2>Resumen</h2>
+<p>ShellDroid es un cliente SSH para Android. <strong>No recopilamos, transmitimos ni compartimos ningún dato personal, analítica de uso ni telemetría.</strong> Ningún dato se envía al desarrollador ni a terceros.</p>
+
+<h2>Datos almacenados en tu dispositivo</h2>
+<p>ShellDroid almacena los siguientes datos exclusivamente de forma local en tu dispositivo:</p>
+
+<table>
+    <tr><th>Tipo de dato</th><th>Descripción</th><th>Protección</th></tr>
+    <tr><td>Perfiles de conexión</td><td>Nombres de host, puertos, nombres de usuario, comandos automáticos y etiquetas que configuras.</td><td>Base de datos local privada</td></tr>
+    <tr><td>Claves SSH y contraseñas</td><td>Claves privadas y frases de paso que generas o importas.</td><td>Cifrado AES-256-GCM mediante Android Keystore + Tink</td></tr>
+    <tr><td>Huellas de servidor (Known Hosts)</td><td>Huella digital de la clave pública de los servidores a los que te conectas.</td><td>Base de datos local privada</td></tr>
+    <tr><td>Snippets de comandos</td><td>Plantillas de comandos guardadas por ti.</td><td>Base de datos local privada</td></tr>
+    <tr><td>Reglas de reenvío de puertos</td><td>Configuración de túneles locales, remotos y dinámicos (SOCKS5).</td><td>Base de datos local privada</td></tr>
+    <tr><td>Preferencias</td><td>Ajustes de interfaz como "mantener pantalla encendida" y modo de bloqueo automático.</td><td>DataStore local</td></tr>
+</table>
+
+<p><strong>Estos datos nunca abandonan tu dispositivo</strong> salvo que tú inicies explícitamente una conexión SSH a un servidor remoto. La copia de seguridad en la nube y la transferencia de dispositivo están desactivadas para todos los datos de la aplicación.</p>
+
+<h2>Autenticación biométrica</h2>
+<p>ShellDroid ofrece desbloqueo biométrico opcional (huella dactilar o reconocimiento facial) y autenticación con credenciales del dispositivo (PIN, patrón o contraseña). Los datos biométricos son gestionados por el sistema operativo Android; ShellDroid no accede ni almacena datos biométricos en sí.</p>
+
+<h2>Conexiones de red</h2>
+<p>ShellDroid se conecta exclusivamente a los servidores SSH que tú configuras. Todas las conexiones utilizan el protocolo SSH, que está cifrado de extremo a extremo. <strong>La aplicación no contacta con ningún otro servidor.</strong></p>
+
+<h2>Permisos</h2>
+<table>
+    <tr><th>Permiso</th><th>Motivo</th></tr>
+    <tr><td>INTERNET</td><td>Conectarse a tus servidores SSH configurados.</td></tr>
+    <tr><td>VIBRATE</td><td>Respuesta háptica en el terminal.</td></tr>
+    <tr><td>FOREGROUND_SERVICE</td><td>Mantener sesiones SSH activas en segundo plano.</td></tr>
+    <tr><td>POST_NOTIFICATIONS</td><td>Notificaciones sobre el estado de sesiones activas.</td></tr>
+</table>
+
+<h2>Servicios de terceros</h2>
+<p>ShellDroid <strong>no integra</strong> ningún servicio de publicidad, analítica, seguimiento ni reportes de errores. No se utilizan Firebase, Google Analytics, Crashlytics ni ningún SDK similar.</p>
+
+<h2>Seguridad de los datos</h2>
+<ul>
+    <li>Las claves SSH y contraseñas se cifran en reposo con AES-256-GCM respaldado por Android Keystore.</li>
+    <li>Los secretos en texto plano se eliminan de la memoria inmediatamente después de su uso.</li>
+    <li>La copia de seguridad en la nube de Android está desactivada para todos los datos de la aplicación.</li>
+    <li>Todos los datos se almacenan en el almacenamiento privado de la aplicación, inaccesible para otras apps.</li>
+</ul>
+
+<h2>Datos de menores</h2>
+<p>ShellDroid no está dirigida a menores de 13 años y no recopila datos de forma intencionada de menores.</p>
+
+<h2>Cambios en esta política</h2>
+<p>Si esta política cambia, la versión actualizada se publicará en esta URL. Los cambios relevantes se indicarán en las notas de la versión correspondiente.</p>
+
+<h2>Contacto</h2>
+<p>Si tienes preguntas sobre esta política, puedes contactar con el desarrollador en <a href="mailto:shelldroid@ebadenes.com">shelldroid@ebadenes.com</a> o abrir un issue en <a href="https://github.com/ebadenes/ShellDroid/issues">github.com/ebadenes/ShellDroid/issues</a>.</p>
+
+</div>
+
+<!-- ==================== ENGLISH ==================== -->
+<div class="section-en">
+
+<h1>ShellDroid - Privacy Policy</h1>
+<p class="updated">Last updated: April 13, 2026</p>
+
+<h2>Overview</h2>
+<p>ShellDroid is an SSH client for Android. <strong>We do not collect, transmit, or share any personal data, usage analytics, or telemetry.</strong> No data is sent to the developer or any third party.</p>
+
+<h2>Data Stored on Your Device</h2>
+<p>ShellDroid stores the following data locally on your device only:</p>
+
+<table>
+    <tr><th>Data type</th><th>Description</th><th>Protection</th></tr>
+    <tr><td>Connection profiles</td><td>Hostnames, ports, usernames, auto-commands, and labels you configure.</td><td>Private local database</td></tr>
+    <tr><td>SSH keys &amp; passwords</td><td>Private keys and passphrases you generate or import.</td><td>AES-256-GCM encryption via Android Keystore + Tink</td></tr>
+    <tr><td>Server fingerprints (Known Hosts)</td><td>Public key fingerprints of servers you connect to.</td><td>Private local database</td></tr>
+    <tr><td>Command snippets</td><td>Command templates saved by you.</td><td>Private local database</td></tr>
+    <tr><td>Port forwarding rules</td><td>Local, remote, and dynamic (SOCKS5) tunnel configuration.</td><td>Private local database</td></tr>
+    <tr><td>Preferences</td><td>UI settings such as "keep screen on" and auto-lock mode.</td><td>Local DataStore</td></tr>
+</table>
+
+<p><strong>This data never leaves your device</strong> unless you explicitly initiate an SSH connection to a remote host. Android cloud backup and device transfer are disabled for all app data.</p>
+
+<h2>Biometric Authentication</h2>
+<p>ShellDroid offers optional biometric unlock (fingerprint or face recognition) and device credential authentication (PIN, pattern, or password). Biometric data is handled by the Android operating system; ShellDroid does not access or store biometric data itself.</p>
+
+<h2>Network Connections</h2>
+<p>ShellDroid connects only to the SSH servers you configure. All connections use the SSH protocol, which is encrypted end-to-end. <strong>The app does not contact any other servers.</strong></p>
+
+<h2>Permissions</h2>
+<table>
+    <tr><th>Permission</th><th>Purpose</th></tr>
+    <tr><td>INTERNET</td><td>Connect to your configured SSH servers.</td></tr>
+    <tr><td>VIBRATE</td><td>Haptic feedback in the terminal.</td></tr>
+    <tr><td>FOREGROUND_SERVICE</td><td>Keep SSH sessions active in the background.</td></tr>
+    <tr><td>POST_NOTIFICATIONS</td><td>Notifications about active session status.</td></tr>
+</table>
+
+<h2>Third-Party Services</h2>
+<p>ShellDroid <strong>does not integrate</strong> any advertising, analytics, tracking, or crash reporting services. No Firebase, Google Analytics, Crashlytics, or similar SDKs are used.</p>
+
+<h2>Data Security</h2>
+<ul>
+    <li>SSH keys and passwords are encrypted at rest with AES-256-GCM backed by Android Keystore.</li>
+    <li>Cleartext secrets are zeroized from memory immediately after use.</li>
+    <li>Android cloud backup is disabled for all app data.</li>
+    <li>All data is stored in the app's private storage, inaccessible to other apps.</li>
+</ul>
+
+<h2>Children's Privacy</h2>
+<p>ShellDroid is not directed at children under 13 and does not knowingly collect data from children.</p>
+
+<h2>Changes to This Policy</h2>
+<p>If this policy changes, the updated version will be published at this URL. Material changes will be noted in the app's release notes.</p>
+
+<h2>Contact</h2>
+<p>If you have questions about this policy, contact the developer at <a href="mailto:shelldroid@ebadenes.com">shelldroid@ebadenes.com</a> or open an issue at <a href="https://github.com/ebadenes/ShellDroid/issues">github.com/ebadenes/ShellDroid/issues</a>.</p>
+
+</div>
+
+</body>
+</html>
