@@ -5,36 +5,34 @@
 </p>
 
 <p align="center">
-  <strong>A professional SSH client for Android. No ads. No tracking. Open source.</strong>
-</p>
-
-<p align="center">
-  <a href="https://shelldroid.ebadenes.com/">Website</a> ·
-  <a href="https://groups.google.com/g/shelldroid-testers">Join the beta</a> ·
-  <a href="#build">Build</a> ·
-  <a href="#license">License</a>
+  SSH client for Android. Native libssh, Compose UI, no ads, no tracking.<br>
+  <a href="https://shelldroid.ebadenes.com/">Web</a> · <a href="https://groups.google.com/g/shelldroid-testers">Beta</a> · <a href="#build">Build</a> · <a href="#license">License</a>
 </p>
 
 ---
 
-## Beta — testers welcome
+## Beta abierta
 
-ShellDroid is in **closed beta** on Google Play. To get access:
+ShellDroid is in **closed beta** on Google Play:
 
-1. **[Join the testers group](https://groups.google.com/g/shelldroid-testers)** (one click)
-2. **[Download from Google Play](https://play.google.com/apps/testing/com.ebadenes.shelldroid)**
+1. [Join the testers group](https://groups.google.com/g/shelldroid-testers) (one click)
+2. [Download from Google Play](https://play.google.com/apps/testing/com.ebadenes.shelldroid)
 
 ---
 
-## Why
+## Why this exists
 
-JuiceSSH Pro disappeared. Years of muscle memory — the hacker keyboard, the two-row bar, quick connect, snippets — gone. The alternatives are either abandonware (ConnectBot, last meaningful commit 2019) or Termius at $10/month for features I use 20% of the time.
+JuiceSSH disappeared. One day it was there, the next the Pro unlock was gone and the app stopped getting updates. Years of muscle memory — the hacker keyboard, quick connect, snippets — vanished.
 
-So I built ShellDroid.
+The alternatives? ConnectBot hasn't had a meaningful commit since 2019. Termius wants $10/month. I use maybe 20% of what Termius offers.
 
-Most Android SSH clients use JSch or sshlib — pure Java, aging crypto, slow key exchange. ShellDroid uses **native libssh via JNI**, compiled with mbedTLS and 16KB page alignment. The cryptographic layer is current, Ed25519 and ECDSA work correctly, and the key exchange is noticeably faster on the first connection.
+So I built my own.
 
-The terminal is built on **org.connectbot:termlib** as a real `@Composable` — not an AndroidView wrapped in Compose glue. Focus, IME resizing, and key handling are native to the composition tree. No hacks, no flickering.
+**What's different technically:**
+
+Most Android SSH clients sit on JSch or sshlib — pure Java, aging crypto, slow key exchange. ShellDroid uses libssh 0.11.4 compiled natively via JNI with mbedTLS. Ed25519 and ECDSA work properly, and the first connection is noticeably faster because the key exchange isn't fighting the JVM.
+
+The terminal runs on ConnectBot's termlib but as a real `@Composable` — not an AndroidView hacked into Compose. IME resizing, focus, and key handling live in the composition tree. No flickering, no workarounds.
 
 ## Screenshots
 
@@ -46,59 +44,33 @@ The terminal is built on **org.connectbot:termlib** as a real `@Composable` — 
   <img src="screenshots/08_lock_screen.png" width="180" alt="App lock" />
 </p>
 
-## Features
+## What it does
 
-### Connection
-- **Native SSH** — libssh 0.11.4 via JNI. Auth by password and public key (RSA, Ed25519, ECDSA)
-- **Quick Connect** — `user@host:port`, optional password, optional save. Ephemeral connections are deleted on disconnect
-- **Live host status** — green dot when the SSH session is active, grey when idle
-- **TOFU** — Trust On First Use with per-host known hosts manager (view/delete individual keys)
-- **Credentials picker** — choose between a one-time password or a saved identity in the same modal
+**Connection** — libssh native (password, RSA, Ed25519, ECDSA). Quick Connect (`user@host:port`), TOFU with per-host known hosts, live session indicator.
 
-### Terminal
-- **Compose-native** — termlib from ConnectBot, no `AndroidView`. IME, selection, and hyperlinks integrated
-- **Hacker keyboard** — 2-row bar (JuiceSSH style) with ESC, arrows, CTRL/ALT sticky, F1–F12, haptic feedback
-- **Snippets** — saved commands you can run on any active session with one tap
-- **Auto-command** — command that runs automatically after connecting to a host
-- **Keep screen on** — optional `FLAG_KEEP_SCREEN_ON` while a terminal is open
-- **Volume zoom** — change font size with volume keys (persisted)
-- **Smart back gesture** — Android 14+ predictive back with keep/disconnect dialog
+**Terminal** — Compose-native termlib. Two-row hacker keyboard (ESC, arrows, CTRL/ALT sticky, F1–F12). Snippets (saved commands, one tap). Auto-command on connect. Volume keys for font size.
 
-### Port forwarding
-- **LOCAL** — `ssh -L` via libssh `direct-tcpip`. `ServerSocket` → bidirectional pipe over SSH channel
-- **DYNAMIC** — SOCKS5 proxy over SSH (`ssh -D`). RFC 1928 handshake in Kotlin, reuses direct-tcpip channel
-- **Auto-connect** — tapping Play on a forward connects the SSH host first if not already live
-- **REMOTE** — `ssh -R` coming soon
+**Port forwarding** — LOCAL (`ssh -L`), DYNAMIC/SOCKS5 (`ssh -D`, RFC 1928 in Kotlin). Auto-connect on play. REMOTE (`ssh -R`) coming next.
 
-### Security
-- **Credential vault** — Tink AES-256-GCM over DataStore. `CharArray` + zeroize, never in the JVM string pool
-- **App lock** — delegates to the system (BiometricPrompt + `DEVICE_CREDENTIAL`). Fingerprint, system PIN, or pattern. No in-app PIN to forget
-- **Auto-lock timeout** — configurable: "Same as system" (reads `Settings.System.SCREEN_OFF_TIMEOUT`), Immediate, 1/5/15 min, Never
-- **No insecure backups** — `android:allowBackup=false`, restrictive data extraction rules
+**Security** — Tink AES-256-GCM credential vault (`CharArray` + zeroize, never in the string pool). App lock via BiometricPrompt + system credential. Configurable auto-lock timeout. `allowBackup=false`.
 
-### UI / UX
-- **Skins** — Abyss (default) and Solarized Dark with 16-color ANSI palette. Live switching
-- **Dark / Light** — follows system or forced. Full Abyss palette
-- **i18n** — English and Spanish, configurable from Settings
-- **Splash screen** — clean boot transition with the Abyss logo
-- **Foreground service** — sessions survive in background with i18n notification, timer, and hostname. "Open terminal" / "Disconnect" actions from the notification
-- **Clone** — duplicate hosts, identities, snippets, or port forwards with one tap
+**UI** — Two skins (Abyss, Solarized Dark). Dark/Light follows system. English + Spanish. Foreground service with notification actions. Clone anything with one tap.
 
-## Stack
+## Build
 
-| Layer | Technology |
-|-------|-----------|
-| Language | Kotlin 2.3.20 |
-| UI | Jetpack Compose + Material 3 (BOM 2026.03.01) |
-| Terminal | [ConnectBot termlib](https://connectbot.org) 0.0.24 |
-| SSH | [libssh](https://www.libssh.org) 0.11.4 native (JNI) + mbedTLS 3.6.4 |
-| DI | Hilt 2.59.2 |
-| DB | Room 2.8.4 |
-| Crypto | Tink 1.15.0 |
-| Build | AGP 9.1.0, Gradle 9.4.1, KSP 2.3.6 |
-| Min SDK | 26 (Android 8.0+) |
+Everything runs in Docker — no Android SDK on the host:
 
-## Modules
+```bash
+./vendor/setup.sh                        # first time: clones libssh, mbedtls
+./docker-gradle.sh :app:assembleDebug    # APK in app/build/outputs/apk/debug/
+./docker-gradle.sh test                  # unit tests
+```
+
+Local OpenSSH server via [Docker Compose](docker-compose.yml) at `127.0.0.1:2222` for integration tests.
+
+## Architecture
+
+12 Gradle modules. Kotlin, Jetpack Compose + Material 3, Hilt, Room, libssh native + mbedTLS. Min SDK 26.
 
 ```
 :app                    → Activity, NavHost, Settings
@@ -115,28 +87,10 @@ The terminal is built on **org.connectbot:termlib** as a real `@Composable` — 
 :service:session        → Foreground service + notification
 ```
 
-## Build
+## Status
 
-The entire build runs in Docker (no Android SDK required on the host):
-
-```bash
-./vendor/setup.sh                        # first time: clones libssh, mbedtls
-./docker-gradle.sh :app:assembleDebug    # APK in app/build/outputs/apk/debug/
-./docker-gradle.sh test                  # 200+ JVM tests
-```
-
-A local OpenSSH server is also available via [Docker Compose](docker-compose.yml) at `127.0.0.1:2222` for integration tests.
-
-## Current version
-
-**v0.4.2-alpha** — on the road to v1.0 stable. Functional and ready for daily use. Remaining for 1.0: REMOTE port forwarding, groups/folders, panic button, Play Store public release.
-
-## About the development
-
-Did I build this alone? No. I worked with Copilot, Gemini, Claude, and whatever was needed at each stage. In 2026, what matters isn't whether you use AI — it's what you can build with it. ShellDroid is a professional SSH client with native libssh via JNI, Jetpack Compose, 12 modules, and 200+ tests. I brought direction, decisions, and hours of real-device testing. AI brought speed.
+**v0.4.2-alpha** — functional, I use it daily. What's left for 1.0: REMOTE forwarding, host groups, panic button, public Play Store release.
 
 ## License
 
-[GPLv3](LICENSE) — Free software. You can use, modify, and distribute ShellDroid under the terms of the GNU General Public License v3.0.
-
-Third-party components: see the Licenses screen in the app (Settings → About → Licenses).
+[GPLv3](LICENSE). Third-party licenses: Settings → About → Licenses in the app.
