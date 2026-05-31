@@ -57,3 +57,12 @@ vendor/*/*/build/
 *.jks
 *.keystore
 release.keystore.properties
+
+# Secrets / signing env (NEVER commit)
+.env
+.env.*
+!.env.example
+
+# Local tooling cache
+.atl/
+__pycache__/

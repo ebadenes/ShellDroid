@@ -13,7 +13,9 @@ android {
 
     signingConfigs {
         create("release") {
-            storeFile = file(System.getenv("SHELLDROID_KEYSTORE") ?: "shelldroid-upload.jks")
+            // Resolve relative to the repo root so the path works regardless of
+            // which module evaluates it (file() alone resolves against app/).
+            storeFile = rootProject.file(System.getenv("SHELLDROID_KEYSTORE") ?: "shelldroid-upload.jks")
             storePassword = System.getenv("SHELLDROID_KEYSTORE_PASS") ?: ""
             keyAlias = "upload"
             keyPassword = System.getenv("SHELLDROID_KEY_PASS") ?: ""
@@ -24,8 +26,8 @@ android {
         applicationId = "com.ebadenes.shelldroid"
         minSdk = libs.versions.minSdk.get().toInt()
         targetSdk = libs.versions.targetSdk.get().toInt()
-        versionCode = 4
-        versionName = "0.4.0-alpha"
+        versionCode = 5
+        versionName = "1.0.0"
         ndk {
             // Align with :core:ssh-native. We only ship 64-bit.
             abiFilters += listOf("arm64-v8a", "x86_64")
